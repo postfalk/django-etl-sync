@@ -23,7 +23,6 @@ from django.forms import DateTimeField, ValidationError
 # from bee.etl.generic_transformations import (lower_case_dic,
 #    get_remote_recource_link_from_template, format_lowercase,
 #    replace_empty_string_with_none)
-from django_etl_sync.readers import ShapefileReader
 
 
 class BaseInstanceGenerator(object):
