@@ -17,13 +17,13 @@ from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
 
 # TODO: remove all local references
-from bee import settings
-from bee.etl.functions import get_or_create_local_path
-from bee.etl.forms import model_to_modelform
-from bee.etl.generic_transformations import (lower_case_dic,
-    get_remote_recource_link_from_template, format_lowercase,
-    replace_empty_string_with_none)
-from bee.etl.readers import ShapefileReader
+# from bee import settings
+# from bee.etl.functions import get_or_create_local_path
+# from bee.etl.forms import model_to_modelform
+# from bee.etl.generic_transformations import (lower_case_dic,
+#    get_remote_recource_link_from_template, format_lowercase,
+#    replace_empty_string_with_none)
+from django_etl_sync.readers import ShapefileReader
 
 
 class BaseInstanceGenerator(object):
