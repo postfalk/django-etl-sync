@@ -8,8 +8,8 @@ import unicodecsv as csv
 from datetime import datetime
 
 from django.conf import settings
-from django_etl_sync.readers import ShapefileReader
-from django_etl_sync.generators import InstanceGenerator
+from readers import ShapefileReader
+from generators import InstanceGenerator
 
 
 def replace_empty_string_with_none(dic):
