@@ -1,6 +1,7 @@
 # python 3 preparations
 from __future__ import print_function
 # python
+import os, sys
 import unicodecsv as csv
 from hashlib import md5
 # django
