@@ -11,7 +11,7 @@ setup(
     version='0.1',
     packages=['django_etl_sync'],
     include_package_data=True,
-    license='BSD License',  # example license
+    license='BSD License', # example license
     description="A ETL tool to sync API's.",
     long_description=README,
     url='https://github.com/postfalk/django-etl-sync.git',
@@ -31,3 +31,4 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
 )
+
