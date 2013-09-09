@@ -1,13 +1,7 @@
 # python 3 preparations
 from __future__ import print_function
 # python
-import re
-import sys
-import json
-import os
-import warnings
 import unicodecsv as csv
-from datetime import datetime
 from hashlib import md5
 # django
 from django.db.models import Q
@@ -15,14 +9,6 @@ from django.db import IntegrityError
 from django.db.models.fields import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
-
-# TODO: remove all local references
-# from bee import settings
-# from bee.etl.functions import get_or_create_local_path
-# from bee.etl.forms import model_to_modelform
-# from bee.etl.generic_transformations import (lower_case_dic,
-#    get_remote_recource_link_from_template, format_lowercase,
-#    replace_empty_string_with_none)
 
 
 class BaseInstanceGenerator(object):

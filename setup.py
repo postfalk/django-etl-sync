@@ -13,6 +13,7 @@ setup(
     include_package_data=True,
     license='BSD License',  # example license
     description="A ETL tool to sync API's.",
+    install_requires=['django', 'osgeo'],
     long_description=README,
     url='https://github.com/postfalk/django-etl-sync.git',
     author='Falk Schuetzenmeister',
