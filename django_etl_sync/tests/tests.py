@@ -148,6 +148,7 @@ class TestLoad(TestCase):
         pass
 
     def test_load_from_file(self):
+        pass
         #path = os.path.dirname(os.path.realpath(__file__))
         #dic = {'filename': '{0}/data.csv'.format(path), 'name': 'test',
         #       'model_class': TestModel, 'persistence': 'record'}
