@@ -45,7 +45,7 @@ How to use
 
   # <yourscript>.py
   from etl_sync.mappers import Mapper
-  from <yourproject>.models import Models
+  from <yourproject>.models import TestModel
   
   class YourMapper(Mapper)
     """
@@ -65,7 +65,7 @@ How to use
 
   # <yourscript>.py
   from etl_sync.generators import BaseInstanceGenerator
-  from <yourproject>.models import Models
+  from <yourproject>.models import TestModel
   
   dic = {'record': 3, 'name': 'three'}
   
