@@ -14,15 +14,19 @@ How to use
 
 1. Add etl_sync to your installed apps.
 
-2. The app provides two ways of access: file level and record level load.
+2. The app provides two ways of access: file level and record level.
 
-3. Minimal example: File level load::
+3. Minimal example: File level load:
 
 
-.. code-block:: python
-  class test
+.. code-block:: text
   
-and
+  # data.txt (tab-delimited)
+  record  name
+  1 one
+  2 two
+  3 three
+
 
 .. code-block:: python
   
@@ -35,8 +39,39 @@ and
   """
   record = models.CharField(max_length=10)
   name = models.CharField(max_length=10, null=True, blank=True)
-
   
+  
+.. code-block:: python
+
+  # <yourscript>.py
+  from etl_sync.mappers import Mapper
+  from <yourproject>.models import Models
+  
+  class YourMapper(Mapper)
+    """
+    Add your specific settings here.
+    """
+    filename = 'data.txt'
+    model_class = TestModel
+  
+  mapper = YourMapper
+  res = mapper.load()
+  
+
+4. Minimal example for dictionary load
+
+
+.. code-block:: python
+
+  # <yourscript>.py
+  from etl_sync.generators import BaseInstanceGenerator
+  from <yourproject>.models import Models
+  
+  dic = {'record': 3, 'name': 'three'}
+  
+  generator = BaseInstanceGenerator(TestModel, dic)
+  generator.get_instance()
+  print(generator.res)
 
 
 Next Steps
