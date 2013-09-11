@@ -12,10 +12,10 @@ if not settings.configured:
             }
         },
         MEDIA_ROOT = os.path.dirname(os.path.realpath(__file__))+'/tests',
-        ROOT_URLCONF='django_etl_sync.tests.urls',
+        ROOT_URLCONF='etl_sync.tests.urls',
         INSTALLED_APPS=(
-            'django_etl_sync',
-            'django_etl_sync.tests',
+            'etl_sync',
+            'etl_sync.tests',
         )
     )
 

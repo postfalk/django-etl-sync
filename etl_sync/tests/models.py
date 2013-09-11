@@ -39,5 +39,3 @@ class TestModel(models.Model):
     nombre = models.ForeignKey(Nombre, null=True)
     numero = models.ForeignKey(Numero)
     related = models.ManyToManyField(Polish, null=True)
-
-

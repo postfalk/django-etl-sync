@@ -8,8 +8,8 @@ import unicodecsv as csv
 from datetime import datetime
 
 from django.conf import settings
-from readers import ShapefileReader
-from generators import InstanceGenerator
+from etl_sync.readers import ShapefileReader
+from etl_sync.generators import InstanceGenerator
 
 
 def replace_empty_string_with_none(dic):
@@ -82,14 +82,13 @@ class Mapper(object):
         Loads data into database using model and Django ORM.
         """
         start = datetime.now()
-        filename = os.path.join(settings.MEDIA_ROOT, self.filename)
 
-        print('Opening {0} using {1}'.format(filename, self.encoding))
+        print('Opening {0} using {1}'.format(self.filename, self.encoding))
 
-        logfilename = os.path.join(settings.MEDIA_ROOT, '{0}.{1}.log'.format(
+        logfilename = os.path.join(os.path.dirname(self.filename), '{0}.{1}.log'.format(
             self.filename, start.date()))
 
-        with open(filename, 'r') as sourcefile, open(logfilename, 'w') as self.logfile:
+        with open(self.filename, 'r') as sourcefile, open(logfilename, 'w') as self.logfile:
 
             print('Data extraction started {0}\n\nStart line: {1}\nEnd line {2}'.format(
                 start, self.slice_begin, self.slice_end), file=self.logfile)

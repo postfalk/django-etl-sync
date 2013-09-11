@@ -3,9 +3,9 @@ from django.core.management import call_command
 from django.db.models import loading
 from django.test import TestCase
 
-from django_etl_sync.tests.models import *
-from django_etl_sync.generators import *
-from django_etl_sync.mappers import Mapper
+from etl_sync.tests.models import *
+from etl_sync.generators import *
+from etl_sync.mappers import Mapper
 
 
 class TestModule(TestCase):
@@ -148,11 +148,9 @@ class TestLoad(TestCase):
         pass
 
     def test_load_from_file(self):
-        pass
-        #path = os.path.dirname(os.path.realpath(__file__))
-        #dic = {'filename': '{0}/data.csv'.format(path), 'name': 'test',
-        #       'model_class': TestModel, 'persistence': 'record'}
-        #mapper = Mapper(dic)
-        #mapper.load()
-        #res = TestModel.objects.all()
-        #self.assertEqual(res.count(), 3)
+        path = os.path.dirname(os.path.realpath(__file__))
+        filename='{0}/data.txt'.format(path)
+        mapper = Mapper(filename=filename, model_class=TestModel)
+        mapper.load()
+        res = TestModel.objects.all()
+        self.assertEqual(res.count(), 3)
