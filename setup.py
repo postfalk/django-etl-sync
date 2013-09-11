@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setup(
     name='django-etl-sync',
     version='0.1',
-    packages=['django_etl_sync'],
+    packages=['etl_sync'],
     include_package_data=True,
     license='BSD License', # example license
     description="A ETL tool to sync API's.",
