@@ -19,7 +19,7 @@ class TestModule(TestCase):
             {'record': '2', 'name': 'two', 'zahl': 'zwei'},
             {'record': '3', 'name': 'three', 'zahl': 'drei'},
             {'record': '1', 'name': 'one', 'zahl': 'vier'},
-            {'record': '1', 'name': 'one again', 'zahl': 'fuenf'}
+            {'record': '1', 'name': 'one again'}
         ]
 
         # test without persistence criterion
@@ -41,6 +41,7 @@ class TestModule(TestCase):
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 3)
         self.assertEqual(res.filter(record='1')[0].name, 'one again')
+        self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
         res.delete()
 
         # test with double persistence criterion
@@ -105,6 +106,30 @@ class TestModule(TestCase):
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 1)
         self.assertEqual(res[0].nombre, None)
+
+    def test_fk_with_rel_field_specified(self):
+        dics = [
+            {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': 'un',
+                'numero': 'uno', 'elnumero': 'el uno'},
+            {'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
+                'numero': 'due', 'elnumero': 'el dos'},
+            {'record': '3', 'name': 'three', 'zahl': 'drei',
+                'nombre': {'name': 'troix'}, 'numero': 'tre',
+                'elnumero': 'el tres'},
+            {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
+                'numero': 'quattro', 'elnumero': 'el tres'},
+            {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
+                'nombre': 'quatre', 'numero': 'cinque'}
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator.get_instance()
+        res = TestModel.objects.all()
+        self.assertEqual(res.count(), 3)
+        self.assertEqual(res[0].elnumero_id, 'el tres')
+        res = ElNumero.objects.all()
+        self.assertEqual(res.count(), 3)
+
 
     def test_rel_creation(self):
         dics = [

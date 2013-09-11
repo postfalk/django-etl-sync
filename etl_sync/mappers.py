@@ -42,6 +42,7 @@ class Mapper(object):
     create_foreign_key = True
     persistence_definition = ['record']
     message = 'Data Extraction'
+    result = None
 
     def __init__(self, *args, **kwargs):
         for k in kwargs:
@@ -168,3 +169,7 @@ class Mapper(object):
                 'created\n{2} updated\n{3} rejected\n'.format(start,
                 create_counter, update_counter, reject_counter),
                 file=self.logfile)
+
+        # TODO: refine
+        self.result = 'loaded'
+

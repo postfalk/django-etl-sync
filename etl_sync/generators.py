@@ -110,11 +110,11 @@ class BaseInstanceGenerator(object):
 
             if self.update:
                 dic = model_to_dict(model_instance)
+                del dic['id']
                 for d in dic.copy():
                     ft = model_instance._meta.get_field(d).get_internal_type()
-                    if ft == 'ManyToManyField':
+                    if ft == 'ManyToManyField' or not d in self.dic:
                         del dic[d]
-                del dic['id']
 
                 result.update(**dic)
                 self.res['updated'] = True
