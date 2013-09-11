@@ -19,7 +19,8 @@ class TestModule(TestCase):
             {'record': '2', 'name': 'two', 'zahl': 'zwei'},
             {'record': '3', 'name': 'three', 'zahl': 'drei'},
             {'record': '1', 'name': 'one', 'zahl': 'vier'},
-            {'record': '1', 'name': 'one again'}
+            {'record': '1', 'name': 'one again'},
+            {'record': '2', 'zahl': None}
         ]
 
         # test without persistence criterion
@@ -28,7 +29,7 @@ class TestModule(TestCase):
             generator.get_instance()
 
         res = TestModelWoFk.objects.all()
-        self.assertEqual(res.count(), 5)
+        self.assertEqual(res.count(), 6)
         self.assertEqual(res.filter(record='1')[0].name, 'one')
         res.delete()
 
@@ -42,6 +43,7 @@ class TestModule(TestCase):
         self.assertEqual(res.count(), 3)
         self.assertEqual(res.filter(record='1')[0].name, 'one again')
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
+        self.assertEqual(res.filter(record='2')[0].zahl, None)
         res.delete()
 
         # test with double persistence criterion
