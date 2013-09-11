@@ -6,7 +6,12 @@ from django.conf import settings
 if not settings.configured:
 
     settings.configure(
-        DATABASE_ENGINE='sqlite3',
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+            }
+        },
+        MEDIA_ROOT = os.path.dirname(os.path.realpath(__file__))+'/tests',
         ROOT_URLCONF='django_etl_sync.tests.urls',
         INSTALLED_APPS=(
             'django_etl_sync',
@@ -16,6 +21,6 @@ if not settings.configured:
 
 from django.test.simple import DjangoTestSuiteRunner
 test_runner = DjangoTestSuiteRunner(verbosity=1)
-failures = test_runner.run_tests(['django_etl_sync.tests', ])
+failures = test_runner.run_tests(['tests', ])
 if failures:
     sys.exit(failures)

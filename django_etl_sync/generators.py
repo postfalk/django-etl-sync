@@ -18,12 +18,13 @@ from django.forms import DateTimeField, ValidationError
 class BaseInstanceGenerator(object):
     model_class = None
     dic = {}
-    persistence = []
+    persistence = None
     create_foreign_key = True
     save = True
     update = True
     create = True
 
+    # rename dic because it is not necessarily a dic
     def __init__(self, model_class, dic, **kwargs):
         """
         Set options from kwargs and dic params (TODO: add this part.).
@@ -37,19 +38,16 @@ class BaseInstanceGenerator(object):
         self.res = {'updated': False, 'created': False, 'rejected': False,
                     'exists': False}
 
-        try:
-            self.persistence = dic['persistence']
-            del dic['persistence']
-        except KeyError:
-            pass
+        if isinstance(dic, dict):
+            if 'persistence' in dic:
+                self.persistence = dic['persistence']
+                del dic['persistence']
 
-        try:
-            self.create = dic['etl_create']
-            del dic['etl_create']
-        except KeyError:
-            pass
+            if 'etl_create' in dic:
+                self.create = dic['etl_create']
+                del dic['etl_create']
 
-        if not isinstance(self.persistence, list):
+        if self.persistence and not isinstance(self.persistence, list):
             self.persistence = [self.persistence]
 
         self.related_instances = {}
@@ -84,16 +82,20 @@ class BaseInstanceGenerator(object):
                 return model_instance
 
         query = Q()
-        for pd in self.persistence:
-            try:
-                attr = getattr(model_instance, pd)
-            except AttributeError:
-                pass
-            else:
-                if attr:
-                    query = query & Q(**{'{0}'.format(pd): attr})
-        result = self.model_class.objects.all().filter(query)
-        record_count = result.count()
+
+        if self.persistence:
+            for pd in self.persistence:
+                try:
+                    attr = getattr(model_instance, pd)
+                except AttributeError:
+                    pass
+                else:
+                    if attr:
+                        query = query & Q(**{'{0}'.format(pd): attr})
+            result = self.model_class.objects.all().filter(query)
+            record_count = result.count()
+        else:
+            record_count = 0
 
         if record_count == 0 and self.create:
             try:
@@ -145,14 +147,14 @@ class InstanceGenerator(BaseInstanceGenerator):
                 fieldtype = field.get_internal_type()
 
             if fieldtype == 'ForeignKey':
-                fieldvalue = FkInstanceGenerator(field, dic).get_instance()
+                fieldvalue = FkInstanceGenerator(field, dic[fieldname]).get_instance()
 
             elif fieldtype == 'ManyToManyField':
                 if isinstance(dic[fieldname], list):
                     # defer assignment of related instances until instance
                     # creation is finished
+                    self.related_instances[fieldname] = []
                     for d in dic[fieldname]:
-                        self.related_instances[fieldname] = []
                         generator = RelInstanceGenerator(field, d)
                         self.related_instances[fieldname].append(
                             generator.get_instance())
@@ -209,12 +211,10 @@ class FkInstanceGenerator(RelInstanceGenerator):
         self.related_field = field.rel.field_name
         self.update = False
 
-    def prepare(self, dic):
+    def prepare(self, value):
 
         RelField = self.related_field
         fieldname = self.field.name
-        value = dic[fieldname]
-        fk_dic = dic.copy()
         instance = None
 
         model_instance = self.model_class()
@@ -233,7 +233,7 @@ class FkInstanceGenerator(RelInstanceGenerator):
                 self.persistence = [RelField]
             else:
                 if RelField == 'id':
-                    fk_dic['name'] = fk_dic[fieldname]
+                    fk_dic = {'name': value}
                     self.persistence = ['name']
                 else:
                     fk_dic = {RelField: value}
