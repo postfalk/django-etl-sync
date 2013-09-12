@@ -145,6 +145,7 @@ class Mapper(object):
                     generator = InstanceGenerator(self.model_class, dic, persistence=['record'])
                     instance = generator.get_instance()
                     result = generator.res
+                    print(generator.log, file=self.logfile)
                 else:
                     reject_counter += 1
 

@@ -23,6 +23,7 @@ class BaseInstanceGenerator(object):
     save = True
     update = True
     create = True
+    log = ''
 
     # rename dic because it is not necessarily a dic
     def __init__(self, model_class, dic, **kwargs):
@@ -164,9 +165,8 @@ class InstanceGenerator(BaseInstanceGenerator):
                 try:
                     cleaned_field = validator.clean(self.dic[fieldname])
                 except ValidationError:
-                    print('incorrect {0}: {1}, line {2}'.format(
-                        fieldname, dic[fieldname], dic['record']))
-                        #, file=self.logfile)
+                    self.log =+ '\nincorrect {0}: {1}, line {2}'.format(
+                        fieldname, dic[fieldname], dic['record'])
                     fieldvalue = None
                 else:
                     fieldvalue = cleaned_field

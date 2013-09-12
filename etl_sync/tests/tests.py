@@ -132,7 +132,6 @@ class TestModule(TestCase):
         res = ElNumero.objects.all()
         self.assertEqual(res.count(), 3)
 
-
     def test_rel_creation(self):
         dics = [
             {'record': '1', 'name': 'one', 'related': [
