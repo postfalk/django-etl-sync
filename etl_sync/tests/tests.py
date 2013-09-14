@@ -57,6 +57,13 @@ class TestModule(TestCase):
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
         res.delete()
 
+    def test_full_instance_generator(self):
+        dics = [
+            {'record': '1', 'name': 'one', 'zahl': 'eins', 'trash': 'rubish'},
+        ]
+        generator = InstanceGenerator(TestModel, dics[0], persistence=['record'])
+        generator.get_instance()
+
     def test_fk(self):
         ins = Nombre(name='un')
         dics = [
@@ -163,6 +170,83 @@ class TestModule(TestCase):
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(len(res.filter(record='1')[0].related.values()), 2)
+
+    def test_logging(self):
+        dics = [
+            {'record': '30', 'date': '3333', 'numero': 'uno'}
+        ]
+
+        for dic in dics:
+            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator.get_instance()
+
+        self.assertEqual(generator.log, '\nincorrect date: 3333, record 30')
+
+    def test_hashing(self):
+        dics = [
+            {'record': 40, 'numero': 'uno'},
+            {'record': 40, 'numero': 'due'},
+            {'record': 43, 'numero': 'tres',
+                'related': [
+                    {'record': '10', 'ilosc': 'jedynka zero',
+                        'persistence': 'record'},
+                    {'record': '21', 'ilosc': 'dwadziescia jeden',
+                        'persistence': 'record'},
+                ]
+            },
+            {'record': 43, 'numero': 'quattre',
+                'related': [
+                    {'record': '10', 'ilosc': 'jedynka zero',
+                        'persistence': 'record'},
+                    {'record': '21', 'ilosc': 'jeden',
+                        'persistence': 'record'},
+                    {'record': '19', 'ilosc': 'jeden',
+                        'persistence': 'record'},
+                ]
+            },
+            {'record': 43, 'zahl': None, 'numero': 'uno'},
+            {'record': 43, 'zahl': None, 'numero': None}
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+            generator.get_instance()
+        res = HashTestModel.objects.all()
+        self.assertEqual(res.count(), 2)
+        self.assertEqual(res.filter(record='40')[0].numero.name, 'due')
+        self.assertNotEqual(res[0].md5, res[1].md5)
+        self.assertEqual(res.get(record='43').related.all().count(), 3)
+
+        def test_messy_relation(self):
+            dics = [
+                {'record': 40, 'numero': 'uno'},
+                {'record': 40, 'numero': 'due'},
+                {'record': 43, 'numero': 'tres',
+                    'related': [
+                        {'record': '10', 'ilosc': 'jedynka zero'},
+                        {'record': '21', 'ilosc': 'dwadziescia jeden'}
+                    ]
+                },
+                {'record': 43, 'numero': 'quattre',
+                    'related': [
+                        {'record': '10', 'ilosc': 'jedynka zero'},
+                        {'record': '21', 'ilosc': 'jeden'},
+                        {'record': '19', 'ilosc': 'jeden'}
+                    ]
+                },
+                {'record': 43, 'zahl': None, 'numero': 'uno'},
+                {'record': 43, 'zahl': None, 'numero': None},
+                {'record': 43, 'numero': 'tres',
+                    'related': [
+                        {'record': '10', 'ilosc': 'jedynka zero'},
+                        {'record': '21', 'ilosc': 'dwadziescia jeden'}
+                    ]
+                },
+            ]
+        for dic in dics:
+            generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+            generator.get_instance()
+        res = Polish.objects.all()
+        self.assertEqual(res.count(), 3)
 
 
 class TestLoad(TestCase):

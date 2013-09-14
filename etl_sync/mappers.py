@@ -40,7 +40,7 @@ class Mapper(object):
     create_new = True
     update = True
     create_foreign_key = True
-    persistence_definition = ['record']
+    persistence = ['record']
     message = 'Data Extraction'
     result = None
 
@@ -86,13 +86,15 @@ class Mapper(object):
 
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
 
-        logfilename = os.path.join(os.path.dirname(self.filename), '{0}.{1}.log'.format(
-            self.filename, start.date()))
+        logfilename = os.path.join(os.path.dirname(self.filename),
+            '{0}.{1}.log'.format(self.filename, start.date()))
 
-        with open(self.filename, 'r') as sourcefile, open(logfilename, 'w') as self.logfile:
+        with open(self.filename, 'r') as sourcefile, open(logfilename, 'w'
+            ) as self.logfile:
 
-            print('Data extraction started {0}\n\nStart line: {1}\nEnd line {2}'.format(
-                start, self.slice_begin, self.slice_end), file=self.logfile)
+            print('Data extraction started {0}\n\nStart line: {1}\nEnd line {2}'
+                  .format(start, self.slice_begin, self.slice_end),
+                  file=self.logfile)
 
             counter = 0
             create_counter = 0
@@ -138,14 +140,18 @@ class Mapper(object):
                 dic = self.transform(csv_dic)
 
                 # remove keywords conflicting with Django model
+                # TODO: I think that is done in several places now
+                # determine the one correct one and get rid of the others
                 if 'id' in dic:
                     del dic['id']
 
                 if self.is_valid(dic):
-                    generator = InstanceGenerator(self.model_class, dic, persistence=['record'])
+                    generator = InstanceGenerator(self.model_class, dic,
+                        persistence=self.persistence)
                     instance = generator.get_instance()
                     result = generator.res
-                    print(generator.log, file=self.logfile)
+                    if generator.log not in [None, '']:
+                        print(generator.log, file=self.logfile)
                 else:
                     reject_counter += 1
 

@@ -9,10 +9,22 @@ from datetime import datetime
 from hashlib import md5
 # django
 from django.db.models import Q
-from django.db import IntegrityError
+from django.db import IntegrityError, DatabaseError
 from django.db.models.fields import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
+
+
+def indent_log(message):
+    if message:
+        message = '  ' + message.replace('\n', '\n  ')
+    return message
+
+
+def append_log(log, message):
+    if message:
+        log = '{0}\n{1}'.format(log, message)
+    return log
 
 
 class BaseInstanceGenerator(object):
@@ -60,25 +72,47 @@ class BaseInstanceGenerator(object):
         """
         return self.model_class(**dic)
 
+    def hash_instance(self, instance):
+        """
+        Method for hashing.
+        """
+        fields = instance._meta.fields
+        out = u''
+        for f in fields:
+            if not f.name in [u'md5', u'id']:
+                try:
+                    value = unicode(getattr(instance, f.name))
+                except TypeError:
+                    pass
+                else:
+                    if value:
+                        out = out + value
+        ret = md5(out.encode('utf-8')).hexdigest()
+        return ret
+
     def get_instance(self):
         """
         Create or get instance and add relate it to the database. Try to make
         this general enough so that subclassing is not necessary.
         1. Check whether instance already saved.
-        2. Check whether instance fulfilling persistence already exists.
+        2. Check whether instance with persistence already exists.
             a) no -> save
             b) yes -> update
         """
 
         model_instance = self.prepare(self.dic)
+        # if hasattr(model_instance, 'record'):
+        #    print(model_instance.record)
 
         if model_instance.pk:
             self.res['exists'] = True
             return model_instance
 
         if hasattr(model_instance, 'md5'):
-            model_instance.md5 = model_instance.get_md5()
-            if self.model_class.objects.filter(md5=model_instance.md5).exists():
+            hashvalue = self.hash_instance(model_instance)
+            model_instance.md5 = hashvalue
+
+            if self.model_class.objects.filter(md5=hashvalue).count() != 0:
                 self.res['exists'] = True
                 return model_instance
 
@@ -93,7 +127,7 @@ class BaseInstanceGenerator(object):
                 else:
                     if attr:
                         query = query & Q(**{'{0}'.format(pd): attr})
-            result = self.model_class.objects.all().filter(query)
+            result = self.model_class.objects.filter(query)
             record_count = result.count()
         else:
             record_count = 0
@@ -101,7 +135,7 @@ class BaseInstanceGenerator(object):
         if record_count == 0 and self.create:
             try:
                 model_instance.save()
-            except IntegrityError:
+            except (IntegrityError, DatabaseError, ValidationError):
                 self.res['rejected'] = True
                 return None
             else:
@@ -116,9 +150,13 @@ class BaseInstanceGenerator(object):
                     ft = model_instance._meta.get_field(d).get_internal_type()
                     if ft == 'ManyToManyField' or not d in self.dic:
                         del dic[d]
-
-                result.update(**dic)
-                self.res['updated'] = True
+                try:
+                    result.update(**dic)
+                except (IntegrityError, DatabaseError):
+                    self.res['rejected'] = True
+                    return None
+                else:
+                    self.res['updated'] = True
             else:
                 self.res['exists'] = True
             model_instance = result[0]
@@ -128,7 +166,10 @@ class BaseInstanceGenerator(object):
             return model_instance
 
         for r in self.related_instances:
-            getattr(model_instance, r).add(*self.related_instances[r])
+            try:
+                getattr(model_instance, r).add(*self.related_instances[r])
+            except IntegrityError:
+                pass
 
         return model_instance
 
@@ -148,7 +189,8 @@ class InstanceGenerator(BaseInstanceGenerator):
                 fieldtype = field.get_internal_type()
 
             if fieldtype == 'ForeignKey':
-                fieldvalue = FkInstanceGenerator(field, dic[fieldname]).get_instance()
+                fieldvalue = FkInstanceGenerator(field, dic[fieldname]
+                    ).get_instance()
 
             elif fieldtype == 'ManyToManyField':
                 if isinstance(dic[fieldname], list):
@@ -165,8 +207,9 @@ class InstanceGenerator(BaseInstanceGenerator):
                 try:
                     cleaned_field = validator.clean(self.dic[fieldname])
                 except ValidationError:
-                    self.log =+ '\nincorrect {0}: {1}, line {2}'.format(
+                    message = 'incorrect {0}: {1}, record {2}'.format(
                         fieldname, dic[fieldname], dic['record'])
+                    self.log = append_log(self.log, message)
                     fieldvalue = None
                 else:
                     fieldvalue = cleaned_field
