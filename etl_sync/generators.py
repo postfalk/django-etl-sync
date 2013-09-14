@@ -27,6 +27,14 @@ def append_log(log, message):
     return log
 
 
+def get_unique_fields(Model):
+    ret = []
+    for f in Model._meta.fields:
+        if f.unique:
+            ret.append(f.name)
+    return ret
+
+
 class BaseInstanceGenerator(object):
     model_class = None
     dic = {}
@@ -90,6 +98,18 @@ class BaseInstanceGenerator(object):
         ret = md5(out.encode('utf-8')).hexdigest()
         return ret
 
+    def get_persistence_query(self, model_instance, persistence):
+        query = Q()
+        for pd in persistence:
+                try:
+                    attr = getattr(model_instance, pd)
+                except AttributeError:
+                    pass
+                else:
+                    if attr:
+                        query = query & Q(**{'{0}'.format(pd): attr})
+        return model_instance.__class__.objects.filter(query)
+
     def get_instance(self):
         """
         Create or get instance and add relate it to the database. Try to make
@@ -111,33 +131,29 @@ class BaseInstanceGenerator(object):
         if hasattr(model_instance, 'md5'):
             hashvalue = self.hash_instance(model_instance)
             model_instance.md5 = hashvalue
-
-            if self.model_class.objects.filter(md5=hashvalue).count() != 0:
+            res = self.model_class.objects.filter(md5=hashvalue)
+            if res.count() != 0:
                 self.res['exists'] = True
-                return model_instance
-
-        query = Q()
+                return res[0]
 
         if self.persistence:
-            for pd in self.persistence:
-                try:
-                    attr = getattr(model_instance, pd)
-                except AttributeError:
-                    pass
-                else:
-                    if attr:
-                        query = query & Q(**{'{0}'.format(pd): attr})
-            result = self.model_class.objects.filter(query)
+            result = self.get_persistence_query(model_instance, self.persistence)
             record_count = result.count()
         else:
-            record_count = 0
+            uf = get_unique_fields(model_instance)
+            if 'id' in uf:
+                uf.remove('id')
+            if len(uf) > 0:
+                result = self.get_persistence_query(model_instance, uf)
+                record_count = result.count()
+            else:
+                record_count = 0
 
         if record_count == 0 and self.create:
             try:
                 model_instance.save()
             except (IntegrityError, DatabaseError, ValidationError):
                 self.res['rejected'] = True
-                return None
             else:
                 self.res['created'] = True
 
@@ -154,7 +170,7 @@ class BaseInstanceGenerator(object):
                     result.update(**dic)
                 except (IntegrityError, DatabaseError):
                     self.res['rejected'] = True
-                    return None
+                    return model_instance
                 else:
                     self.res['updated'] = True
             else:
@@ -166,10 +182,7 @@ class BaseInstanceGenerator(object):
             return model_instance
 
         for r in self.related_instances:
-            try:
-                getattr(model_instance, r).add(*self.related_instances[r])
-            except IntegrityError:
-                pass
+            getattr(model_instance, r).add(*self.related_instances[r])
 
         return model_instance
 
