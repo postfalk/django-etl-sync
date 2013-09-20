@@ -75,7 +75,6 @@ class Mapper(object):
         else:
             dic = {}
         dic = dict(dic.items() + dictionary.items())
-        dictionary = replace_empty_string_with_none(dictionary)
         return dic
 
     def load(self):

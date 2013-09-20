@@ -14,7 +14,7 @@ class Nombre(models.Model):
     """
     ForeignKey Model for unit tests.
     """
-    name = models.CharField(max_length=10)
+    name = models.CharField(max_length=10, blank=True)
 
 
 class Numero(models.Model):
@@ -40,7 +40,8 @@ class ElNumero(models.Model):
     ForeignKey Model for unit tests.
     """
     rec = models.CharField(max_length=10, unique=True)
-    name = models.CharField(max_length=10)
+    name = models.CharField(max_length=10, blank=True)
+    nochwas = models.CharField(max_length=2, blank=True)
 
 
 class TestModel(models.Model):
@@ -50,16 +51,16 @@ class TestModel(models.Model):
     record = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=10, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
-    nombre = models.ForeignKey(Nombre, null=True)
+    nombre = models.ForeignKey(Nombre, null=True, blank=True)
     numero = models.ForeignKey(Numero)
-    elnumero = models.ForeignKey(ElNumero, to_field='rec', null=True)
-    related = models.ManyToManyField(Polish, null=True)
-    date = models.DateTimeField(null=True)
+    elnumero = models.ForeignKey(ElNumero, to_field='rec', null=True, blank=True)
+    related = models.ManyToManyField(Polish, null=True, blank=True)
+    date = models.DateTimeField(null=True, blank=True)
 
 
 class HashTestModel(models.Model):
     record = models.CharField(max_length=10)
-    numero = models.ForeignKey(Numero)
+    numero = models.ForeignKey(Numero, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
     related = models.ManyToManyField(Polish, null=True)
-    md5 = models.CharField(max_length=30, null=True)
+    md5 = models.CharField(max_length=32, null=True)

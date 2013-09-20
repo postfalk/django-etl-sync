@@ -107,7 +107,7 @@ class BaseInstanceGenerator(object):
                     pass
                 else:
                     if attr:
-                        query = query & Q(**{'{0}'.format(pd): attr})
+                        query = query & Q(**{pd: attr})
         return model_instance.__class__.objects.filter(query)
 
     def get_instance(self):
@@ -121,8 +121,9 @@ class BaseInstanceGenerator(object):
         """
 
         model_instance = self.prepare(self.dic)
-        # if hasattr(model_instance, 'record'):
-        #    print(model_instance.record)
+        if not model_instance:
+            self.res['rejected'] = True
+            return None
 
         if model_instance.pk:
             self.res['exists'] = True
@@ -137,7 +138,8 @@ class BaseInstanceGenerator(object):
                 return res[0]
 
         if self.persistence:
-            result = self.get_persistence_query(model_instance, self.persistence)
+            result = self.get_persistence_query(model_instance,
+                                                self.persistence)
             record_count = result.count()
         else:
             uf = get_unique_fields(model_instance)
@@ -151,11 +153,18 @@ class BaseInstanceGenerator(object):
 
         if record_count == 0 and self.create:
             try:
-                model_instance.save()
-            except (IntegrityError, DatabaseError, ValidationError):
+                model_instance.clean_fields()
+            except ValidationError as e:
+                print(model_instance.__class__, model_to_dict(model_instance))
+                print(e.message_dict)
                 self.res['rejected'] = True
             else:
-                self.res['created'] = True
+                try:
+                    model_instance.save()
+                except IntegrityError:
+                    self.res['rejected'] = True
+                else:
+                    self.res['created'] = True
 
         elif record_count == 1:
 
@@ -230,12 +239,17 @@ class InstanceGenerator(BaseInstanceGenerator):
             elif fieldtype == 'GeometryField':
                 fieldvalue = dic[fieldname]
 
+            elif fieldtype == 'CharField' or fieldtype == 'TextField':
+                if not dic[fieldname]:
+                    fieldvalue = ''
+                if hasattr(field, 'max_length'):
+                    fieldvalue = str(dic[fieldname])
+                    fieldvalue = fieldvalue[0:field.max_length]
+                else:
+                    fieldvalue = dic[fieldname]
+
             else:
                 fieldvalue = dic[fieldname]
-                try:
-                    fieldvalue = fieldvalue[0:field.max_length]
-                except TypeError:
-                    pass
 
             try:
                 setattr(model_instance, fieldname, fieldvalue)
@@ -269,11 +283,14 @@ class FkInstanceGenerator(RelInstanceGenerator):
 
     def prepare(self, value):
 
+        if not value:
+            return None
+
         RelField = self.related_field
         fieldname = self.field.name
         instance = None
 
-        model_instance = self.model_class()
+        # model_instance = self.model_class()
 
         if isinstance(value, self.model_class):
             ret = value

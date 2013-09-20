@@ -64,6 +64,12 @@ class TestModule(TestCase):
         generator = InstanceGenerator(TestModel, dics[0], persistence=['record'])
         generator.get_instance()
 
+
+    #def test_fk_instance_generator(self):
+    #    dics = []
+    #    generator = InstanceGenerator()
+
+
     def test_fk(self):
         ins = Nombre(name='un')
         dics = [
@@ -94,7 +100,7 @@ class TestModule(TestCase):
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins',
                 'nombre': {'name': 'un', 'etl_create': False},
-                'numero': ''
+                'numero': 'quattre'
             },
             {'record': '2', 'name': 'two', 'zahl': 'eins',
                 'numero': {'name': 'uno', 'etl_create': False}
@@ -264,3 +270,10 @@ class TestLoad(TestCase):
         mapper.load()
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 3)
+
+
+#class TestEtc(TestCase):
+
+    #def test_none_in_string_fields(self):
+    #    ins = ElNumero(**{'rec': 2000, 'name': None, 'nochwas': None})
+    #    ins.save()
