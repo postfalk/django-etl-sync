@@ -191,7 +191,10 @@ class BaseInstanceGenerator(object):
             return model_instance
 
         for r in self.related_instances:
-            getattr(model_instance, r).add(*self.related_instances[r])
+            try:
+                getattr(model_instance, r).add(*self.related_instances[r])
+            except ValueError:
+                pass
 
         return model_instance
 
@@ -243,7 +246,7 @@ class InstanceGenerator(BaseInstanceGenerator):
                 if not dic[fieldname]:
                     fieldvalue = ''
                 if hasattr(field, 'max_length'):
-                    fieldvalue = str(dic[fieldname])
+                    fieldvalue = unicode(dic[fieldname])
                     fieldvalue = fieldvalue[0:field.max_length]
                 else:
                     fieldvalue = dic[fieldname]
