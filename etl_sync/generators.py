@@ -1,12 +1,9 @@
 """
 Classes that generate model instances from dictionaries.
 """
-# python 3 preparations
 from __future__ import print_function
-# python
 from hashlib import md5
 import os
-# django
 from django.db.models import Q
 from django.db import IntegrityError, DatabaseError
 from django.db.models.fields import FieldDoesNotExist
@@ -40,25 +37,6 @@ def get_unique_fields(model_class):
     for field in model_class._meta.fields:
         if field.unique:
             ret.append(field.name)
-    return ret
-
-
-def hash_instance(instance):
-    """
-    Method for hashing.
-    """
-    fields = instance._meta.fields
-    out = u''
-    for field in fields:
-        if not field.name in [u'md5', u'id']:
-            try:
-                value = unicode(getattr(instance, field.name))
-            except TypeError:
-                pass
-            else:
-                if value:
-                    out = out + value
-    ret = md5(out.encode('utf-8')).hexdigest()
     return ret
 
 
@@ -97,6 +75,23 @@ class BaseInstanceGenerator(object):
             self.persistence = [self.persistence]
         self.related_instances = {}
 
+    def hash_instance(self, instance):
+        """
+        Method for hashing.
+        """
+        fields = instance._meta.fields
+        out = u''
+        for field in fields:
+            if not field.name in [u'md5', u'id']:
+                try:
+                    value = unicode(getattr(instance, field.name))
+                except TypeError:
+                    pass
+                else:
+                    if value:
+                        out = out + value
+        return md5(out.encode('utf-8')).hexdigest()
+
     def prepare(self, dic):
         """
         Basic model to dic conversion works only for models without relational
@@ -122,12 +117,8 @@ class BaseInstanceGenerator(object):
 
     def get_instance(self):
         """
-        Create or get instance and add relate it to the database. Try to make
-        this general enough so that subclassing is not necessary.
-        1. Check whether instance already saved.
-        2. Check whether instance with persistence already exists.
-            a) no -> save
-            b) yes -> update
+        Create or get instance and add it to the database and create
+        relationships.
         """
 
         model_instance = self.prepare(self.dic)
@@ -140,7 +131,7 @@ class BaseInstanceGenerator(object):
             return model_instance
 
         if hasattr(model_instance, 'md5'):
-            hashvalue = hash_instance(model_instance)
+            hashvalue = self.hash_instance(model_instance)
             model_instance.md5 = hashvalue
             res = self.model_class.objects.filter(md5=hashvalue)
             if res.count() != 0:
@@ -153,6 +144,7 @@ class BaseInstanceGenerator(object):
             record_count = result.count()
         else:
             unique_fields = get_unique_fields(model_instance)
+            # redundant?
             if 'id' in unique_fields:
                 unique_fields.remove('id')
             if len(unique_fields) > 0:
@@ -216,15 +208,16 @@ class InstanceGenerator(BaseInstanceGenerator):
     Instance generator that can take of foreign key and many-to-many-
     relationships.
     """
+
     def prepare(self, dic):
         model_instance = self.model_class()
-        for fieldname in dic:
-            try:
-                field = model_instance._meta.get_field(fieldname)
-            except (AttributeError, FieldDoesNotExist):
+        fieldnames = model_instance._meta.get_all_field_names()
+        for fieldname in fieldnames:
+            if not fieldname in dic:
                 continue
-            else:
-                fieldtype = field.get_internal_type()
+            field = model_instance._meta.get_field(fieldname)
+            fieldtype = field.get_internal_type()
+            fieldvalue = None
 
             if fieldtype == 'ForeignKey':
                 fieldvalue = FkInstanceGenerator(field, dic[fieldname]
@@ -263,10 +256,11 @@ class InstanceGenerator(BaseInstanceGenerator):
                         fieldvalue = dic[fieldname]
                     if hasattr(field, 'max_length'):
                         fieldvalue = fieldvalue[0:field.max_length]
+                else:
+                    fieldvalue = ''
 
             else:
                 fieldvalue = dic[fieldname]
-
             try:
                 setattr(model_instance, fieldname, fieldvalue)
             except ValueError:

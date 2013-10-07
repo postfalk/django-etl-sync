@@ -1,12 +1,8 @@
-# python 3 preparations
 from __future__ import print_function
-
-# python
 import os
 import warnings
 import unicodecsv as csv
 from datetime import datetime
-
 from django.conf import settings
 from etl_sync.readers import ShapefileReader
 from etl_sync.generators import InstanceGenerator
@@ -51,7 +47,6 @@ class Mapper(object):
             else:
                 warnings.warn('Invalid keyword argument for Mapper '
                               'will be ignored.')
-
             if not self.encoding or self.encoding == '':
                 self.encoding = 'utf-8'
 
@@ -69,7 +64,6 @@ class Mapper(object):
         Keys not present as model fields will be ignored in load.
         Extend this method for custom transformations.
         """
-
         if type(self.default_values) is dict:
             dic = self.default_values.copy()
         else:
@@ -82,9 +76,7 @@ class Mapper(object):
         Loads data into database using model and Django ORM.
         """
         start = datetime.now()
-
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-
         logfilename = os.path.join(os.path.dirname(self.filename),
             '{0}.{1}.log'.format(self.filename, start.date()))
 

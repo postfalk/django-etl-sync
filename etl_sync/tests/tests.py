@@ -267,5 +267,6 @@ class TestReaders(TestCase):
         pass
 
     def test_dic_decoder(self):
-        testdic = {'word': 'testword', 'number': 68898, 'utf8': ''}
-        unicode_dic(testdic, 'utf-8')
+        testdic = {'word': 'testword', 'number': 68898, 'utf8': 'testing\xc2\xa0'}
+        dic = unicode_dic(testdic, 'utf-8')
+        self.assertEqual(dic['utf8'], u'testing\xa0')
