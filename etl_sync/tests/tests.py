@@ -3,9 +3,11 @@ from django.core.management import call_command
 from django.db.models import loading
 from django.test import TestCase
 
-from etl_sync.tests.models import *
+from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre, Numero,
+                                   Polish, TestModel, TestModelWoFk)
 from etl_sync.generators import *
 from etl_sync.mappers import Mapper
+from etl_sync.readers import unicode_dic
 
 
 class TestModule(TestCase):
@@ -64,12 +66,6 @@ class TestModule(TestCase):
         generator = InstanceGenerator(TestModel, dics[0], persistence=['record'])
         generator.get_instance()
 
-
-    #def test_fk_instance_generator(self):
-    #    dics = []
-    #    generator = InstanceGenerator()
-
-
     def test_fk(self):
         ins = Nombre(name='un')
         dics = [
@@ -84,11 +80,9 @@ class TestModule(TestCase):
             {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
                 'nombre': 'quatre', 'numero': 'cinque'}
         ]
-
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
-
         res = Nombre.objects.all()
         self.assertEqual(res.count(), 4)
         res = TestModel.objects.all()
@@ -106,14 +100,12 @@ class TestModule(TestCase):
                 'numero': {'name': 'uno', 'etl_create': False}
             }
         ]
-
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
             result = generator.res
-
         # nombre example with fk that allows None
-        # numero example with fk that allows not None
+        # numero example with fk that does not allow None
         self.assertEqual(result['rejected'], True)
         self.assertEqual(result['created'], False)
         self.assertEqual(result['updated'], False)
@@ -164,7 +156,6 @@ class TestModule(TestCase):
                 'numero': 'tre'
             },
         ]
-
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
@@ -181,11 +172,9 @@ class TestModule(TestCase):
         dics = [
             {'record': '30', 'date': '3333', 'numero': 'uno'}
         ]
-
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
-
         self.assertEqual(generator.log, '\nincorrect date: 3333, record 30')
 
     def test_hashing(self):
@@ -272,8 +261,11 @@ class TestLoad(TestCase):
         self.assertEqual(res.count(), 3)
 
 
-#class TestEtc(TestCase):
+class TestReaders(TestCase):
 
-    #def test_none_in_string_fields(self):
-    #    ins = ElNumero(**{'rec': 2000, 'name': None, 'nochwas': None})
-    #    ins.save()
+    def setUp(self):
+        pass
+
+    def test_dic_decoder(self):
+        testdic = {'word': 'testword', 'number': 68898, 'utf8': ''}
+        unicode_dic(testdic, 'utf-8')

@@ -1,5 +1,19 @@
+"""
+Reader classes for ETL.
+"""
 from osgeo import ogr
 import unicodecsv as csv
+
+
+def unicode_dic(dic, encoding):
+    """
+    Decodes entire dictionary with given encoding.
+    """
+    for key, value in dic.iteritems():
+        if isinstance(value, str):
+            dic[key] = unicode(value, encoding)
+    return dic
+
 
 class ShapefileReader(object):
     """
@@ -8,11 +22,12 @@ class ShapefileReader(object):
     doing it (not using ogr).
     """
 
-    def __init__(self, source):
+    def __init__(self, source, encoding='utf-8'):
         if hasattr(source, 'name'):
             s = source.name
             source.close()
             source = s
+        self.encoding = encoding
         self.shapefile = ogr.Open(source)
         self.layer = self.shapefile.GetLayer(0)
 
@@ -26,6 +41,7 @@ class ShapefileReader(object):
         except AttributeError:
             raise StopIteration
         else:
+            ret = unicode_dic(ret, self.encoding)
             ret['geometry'] = feature.geometry().ExportToWkt()
             return ret
 

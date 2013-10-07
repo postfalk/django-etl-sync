@@ -256,13 +256,13 @@ class InstanceGenerator(BaseInstanceGenerator):
                 fieldvalue = dic[fieldname]
 
             elif fieldtype == 'CharField' or fieldtype == 'TextField':
-                if not dic[fieldname]:
-                    fieldvalue = ''
-                if hasattr(field, 'max_length'):
-                    fieldvalue = unicode(dic[fieldname])
-                    fieldvalue = fieldvalue[0:field.max_length]
-                else:
-                    fieldvalue = dic[fieldname]
+                if dic.get(fieldname):
+                    if not isinstance(dic[fieldname], str):
+                        fieldvalue = unicode(dic[fieldname])
+                    else:
+                        fieldvalue = dic[fieldname]
+                    if hasattr(field, 'max_length'):
+                        fieldvalue = fieldvalue[0:field.max_length]
 
             else:
                 fieldvalue = dic[fieldname]
