@@ -65,9 +65,9 @@ class BaseInstanceGenerator(object):
         self.res = {'updated': False, 'created': False, 'rejected': False,
                     'exists': False}
         if isinstance(dic, dict):
-            if 'persistence' in dic:
-                self.persistence = dic['persistence']
-                del dic['persistence']
+            if 'etl_persistence' in dic:
+                self.persistence = dic['etl_persistence']
+                del dic['etl_persistence']
             if 'etl_create' in dic:
                 self.create = dic['etl_create']
                 del dic['etl_create']
@@ -120,8 +120,8 @@ class BaseInstanceGenerator(object):
         Create or get instance and add it to the database and create
         relationships.
         """
-
         model_instance = self.prepare(self.dic)
+
         if not model_instance:
             self.res['rejected'] = True
             return None
@@ -168,7 +168,6 @@ class BaseInstanceGenerator(object):
                     self.res['rejected'] = True
                 else:
                     self.res['created'] = True
-
         elif record_count == 1:
 
             if self.update:
@@ -189,17 +188,14 @@ class BaseInstanceGenerator(object):
             else:
                 self.res['exists'] = True
             model_instance = result[0]
-
         else:
             self.res['rejected'] = True
             return model_instance
-
         for key in self.related_instances:
             try:
                 getattr(model_instance, key).add(*self.related_instances[key])
             except ValueError:
                 pass
-
         return model_instance
 
 
