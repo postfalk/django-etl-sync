@@ -197,13 +197,37 @@ class TestModule(TestCase):
             {'record': 43, 'zahl': None, 'numero': None}
         ]
         for dic in dics:
-            generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+            generator = InstanceGenerator(HashTestModel, dic,
+                persistence='record')
             generator.get_instance()
         res = HashTestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(res.filter(record='40')[0].numero.name, 'due')
         self.assertNotEqual(res[0].md5, res[1].md5)
         self.assertEqual(res.get(record='43').related.all().count(), 3)
+
+        def test_update(self):
+            """ Test md5 update. """
+            print('----------------------')
+            dics = [
+                {'record': 43, 'numero': 'due'},
+                {'record': 43, 'numero': 'due'},
+                {'record': 43, 'numero': 'tres'},
+            ]
+            generator = InstanceGenerator(HashTestModel, dic[0],
+                persistence='record')
+            instance = generator.get_instance()
+            hashvalue1 = instance.md5dddfd
+            generator = InstanceGenerator(HashTestModel, dic[1],
+                persistence='record')
+            instance = generator.get_instance()
+            self.assertEqual(hashvalue1, instance.md5)
+            generator = InstanceGenerator(HashTestModel, dic[2],
+                persistence='record')
+            instance = generator.get_instance()
+            self.assertNotEqual(hashvalue1, instance.md5)
+            res = HashTestModel.objects.filter(record=43)
+            self.assertNotEqual(hashvalue1, res[0].md5)
 
         def test_complex_relationships(self):
             dics = [
@@ -232,7 +256,8 @@ class TestModule(TestCase):
                 },
             ]
         for dic in dics:
-            generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+            generator = InstanceGenerator(HashTestModel, dic,
+                persistence='record')
             generator.get_instance()
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)

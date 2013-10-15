@@ -84,7 +84,8 @@ class BaseInstanceGenerator(object):
                 else:
                     if value:
                         out = out + value
-        return md5(out.encode('utf-8')).hexdigest()
+        ret = md5(out.encode('utf-8')).hexdigest()
+        return ret
 
     def prepare(self, dic):
         """
@@ -136,12 +137,12 @@ class BaseInstanceGenerator(object):
 
         if hasattr(model_instance, 'md5'):
             hashvalue = self.hash_instance(model_instance)
-            model_instance.md5 = hashvalue
             res = self.model_class.objects.filter(md5=hashvalue)
             if res.count() != 0:
                 self.res['exists'] = True
                 self.assign_related(res[0], self.related_instances)
                 return res[0]
+            model_instance.md5 = hashvalue
 
         if self.persistence:
             result = self.get_persistence_query(model_instance,
@@ -175,14 +176,15 @@ class BaseInstanceGenerator(object):
                     else:
                         self.res['created'] = True
             self.assign_related(model_instance, self.related_instances)
-        elif record_count == 1:
 
+        elif record_count == 1:
             if self.update:
                 dic = model_to_dict(model_instance)
                 del dic['id']
                 for key in dic.copy():
                     field_type = model_instance._meta.get_field(key
                         ).get_internal_type()
+                    # fields = model_instance._meta.field_names()
                     if field_type == 'ManyToManyField' or not key in self.dic:
                         del dic[key]
                 try:
@@ -195,6 +197,7 @@ class BaseInstanceGenerator(object):
             else:
                 self.res['exists'] = True
             model_instance = result[0]
+
         else:
             self.res['rejected'] = True
             return model_instance
