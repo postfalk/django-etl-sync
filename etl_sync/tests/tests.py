@@ -206,29 +206,6 @@ class TestModule(TestCase):
         self.assertNotEqual(res[0].md5, res[1].md5)
         self.assertEqual(res.get(record='43').related.all().count(), 3)
 
-        def test_update(self):
-            """ Test md5 update. """
-            print('----------------------')
-            dics = [
-                {'record': 43, 'numero': 'due'},
-                {'record': 43, 'numero': 'due'},
-                {'record': 43, 'numero': 'tres'},
-            ]
-            generator = InstanceGenerator(HashTestModel, dic[0],
-                persistence='record')
-            instance = generator.get_instance()
-            hashvalue1 = instance.md5dddfd
-            generator = InstanceGenerator(HashTestModel, dic[1],
-                persistence='record')
-            instance = generator.get_instance()
-            self.assertEqual(hashvalue1, instance.md5)
-            generator = InstanceGenerator(HashTestModel, dic[2],
-                persistence='record')
-            instance = generator.get_instance()
-            self.assertNotEqual(hashvalue1, instance.md5)
-            res = HashTestModel.objects.filter(record=43)
-            self.assertNotEqual(hashvalue1, res[0].md5)
-
         def test_complex_relationships(self):
             dics = [
                 {'record': 40, 'numero': 'uno'},
@@ -295,6 +272,28 @@ class TestUpdate(TestCase):
             self.assertEqual(generator.res['created'], False)
             self.assertEqual(generator.res['updated'], True)
             self.assertEqual(generator.res['exists'], False)
+
+    def test_md5(self):
+        print('----------------------')
+        dics = [
+            {'record': 43, 'numero': 'due'},
+            {'record': 43, 'numero': 'due'},
+            {'record': 43, 'numero': 'tres'},
+        ]
+        generator = InstanceGenerator(HashTestModel, dics[0],
+            persistence='record')
+        instance = generator.get_instance()
+        hashvalue1 = instance.md5
+        generator = InstanceGenerator(HashTestModel, dics[1],
+            persistence='record')
+        instance = generator.get_instance()
+        self.assertEqual(hashvalue1, instance.md5)
+        generator = InstanceGenerator(HashTestModel, dics[2],
+            persistence='record')
+        instance = generator.get_instance()
+        self.assertNotEqual(hashvalue1, instance.md5)
+        res = HashTestModel.objects.filter(record=43)
+        self.assertNotEqual(hashvalue1, res[0].md5)
 
 
 class TestLoad(TestCase):
