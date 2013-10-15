@@ -12,21 +12,15 @@ from django.forms import DateTimeField, ValidationError
 
 
 def indent_log(message):
-    """
-    Indenting log messages from subroutines.
-    """
+    """Indent log messages from subroutines."""
     if message:
-        message = '  ' + message.replace('\n', '\n  ')
-    return message
+        return '  ' + message.replace('\n', '\n  ')
 
 
 def append_log(log, message):
-    """
-    Appending messages to log.
-    """
+    """Append messages to log."""
     if message:
-        log = '{0}\n{1}'.format(log, message)
-    return log
+        return '{0}\n{1}'.format(log, message)
 
 
 def get_unique_fields(model_class):
@@ -300,9 +294,7 @@ class FkInstanceGenerator(RelInstanceGenerator):
     def prepare(self, value):
         if not value:
             return None
-
         related_field_class = self.related_field
-
         if isinstance(value, self.model_class):
             ret = value
         else:
@@ -320,6 +312,5 @@ class FkInstanceGenerator(RelInstanceGenerator):
                 else:
                     fk_dic = {related_field_class: value}
                     self.persistence = [related_field_class]
-
             ret = super(FkInstanceGenerator, self).prepare(fk_dic)
         return ret
