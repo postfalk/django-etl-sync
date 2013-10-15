@@ -180,12 +180,15 @@ class BaseInstanceGenerator(object):
         elif record_count == 1:
             if self.update:
                 dic = model_to_dict(model_instance)
-                del dic['id']
                 for key in dic.copy():
                     field_type = model_instance._meta.get_field(key
                         ).get_internal_type()
-                    # fields = model_instance._meta.field_names()
-                    if field_type == 'ManyToManyField' or not key in self.dic:
+                    # TODO make this more elegant
+                    if (
+                        field_type == 'ManyToManyField' or
+                        not key in self.dic and
+                        key != 'md5'
+                    ):
                         del dic[key]
                 try:
                     result.update(**dic)
