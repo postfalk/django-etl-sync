@@ -115,6 +115,16 @@ class BaseInstanceGenerator(object):
                     query = query & Q(**{pfield: attr})
         return self.model_class.objects.filter(query)
 
+    def assign_related(self, instance, rel_inst_dic):
+        """
+        Assign related instances (use after saving).
+        """
+        for key, item in rel_inst_dic.iteritems():
+            try:
+                getattr(instance, key).add(*item)
+            except ValueError:
+                pass
+
     def get_instance(self):
         """
         Create or get instance and add it to the database and create
@@ -136,6 +146,7 @@ class BaseInstanceGenerator(object):
             res = self.model_class.objects.filter(md5=hashvalue)
             if res.count() != 0:
                 self.res['exists'] = True
+                self.assign_related(res[0], self.related_instances)
                 return res[0]
 
         if self.persistence:
@@ -154,20 +165,22 @@ class BaseInstanceGenerator(object):
             else:
                 record_count = 0
 
-        if record_count == 0 and self.create:
-            try:
-                model_instance.clean_fields()
-            except ValidationError as error:
-                print(model_instance.__class__, model_to_dict(model_instance))
-                print(error.message_dict)
-                self.res['rejected'] = True
-            else:
+        if record_count == 0:
+            if self.create:
                 try:
-                    model_instance.save()
-                except IntegrityError:
+                    model_instance.clean_fields()
+                except ValidationError as error:
+                    print(model_instance.__class__, model_to_dict(model_instance))
+                    print(error.message_dict)
                     self.res['rejected'] = True
                 else:
-                    self.res['created'] = True
+                    try:
+                        model_instance.save()
+                    except IntegrityError:
+                        self.res['rejected'] = True
+                    else:
+                        self.res['created'] = True
+            self.assign_related(model_instance, self.related_instances)
         elif record_count == 1:
 
             if self.update:
@@ -191,11 +204,8 @@ class BaseInstanceGenerator(object):
         else:
             self.res['rejected'] = True
             return model_instance
-        for key in self.related_instances:
-            try:
-                getattr(model_instance, key).add(*self.related_instances[key])
-            except ValueError:
-                pass
+
+        self.assign_related(model_instance, self.related_instances)
         return model_instance
 
 

@@ -36,7 +36,7 @@ class Mapper(object):
     create_new = True
     update = True
     create_foreign_key = True
-    persistence = ['record']
+    etl_persistence = ['record']
     message = 'Data Extraction'
     result = None
 
@@ -138,7 +138,7 @@ class Mapper(object):
 
                 if self.is_valid(dic):
                     generator = InstanceGenerator(self.model_class, dic,
-                        persistence=self.persistence)
+                        persistence=self.etl_persistence)
                     instance = generator.get_instance()
                     result = generator.res
                     if generator.log not in [None, '']:
@@ -170,4 +170,3 @@ class Mapper(object):
 
         # TODO: refine
         self.result = 'loaded'
-
