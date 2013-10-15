@@ -53,7 +53,8 @@ class TestModel(models.Model):
     zahl = models.CharField(max_length=10, null=True, blank=True)
     nombre = models.ForeignKey(Nombre, null=True, blank=True)
     numero = models.ForeignKey(Numero)
-    elnumero = models.ForeignKey(ElNumero, to_field='rec', null=True, blank=True)
+    elnumero = models.ForeignKey(ElNumero, to_field='rec', null=True,
+        blank=True)
     related = models.ManyToManyField(Polish, null=True, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 

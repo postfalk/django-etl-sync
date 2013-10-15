@@ -1,11 +1,11 @@
+import os
 from django.conf import settings
 from django.core.management import call_command
 from django.db.models import loading
 from django.test import TestCase
-
 from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre, Numero,
                                    Polish, TestModel, TestModelWoFk)
-from etl_sync.generators import *
+from etl_sync.generators import BaseInstanceGenerator, InstanceGenerator
 from etl_sync.mappers import Mapper
 from etl_sync.readers import unicode_dic
 
@@ -24,36 +24,30 @@ class TestModule(TestCase):
             {'record': '1', 'name': 'one again'},
             {'record': '2', 'zahl': None}
         ]
-
         # test without persistence criterion
         for dic in dics:
             generator = BaseInstanceGenerator(TestModelWoFk, dic)
             generator.get_instance()
-
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 6)
         self.assertEqual(res.filter(record='1')[0].name, 'one')
         res.delete()
-
         # test with persistence criterion
         for dic in dics:
             generator = BaseInstanceGenerator(TestModelWoFk, dic,
                                               persistence='record')
             generator.get_instance()
-
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 3)
         self.assertEqual(res.filter(record='1')[0].name, 'one again')
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
         self.assertEqual(res.filter(record='2')[0].zahl, None)
         res.delete()
-
         # test with double persistence criterion
         for dic in dics:
             generator = BaseInstanceGenerator(TestModelWoFk, dic,
                                               persistence=['record', 'name'])
             generator.get_instance()
-
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 4)
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
@@ -211,7 +205,7 @@ class TestModule(TestCase):
         self.assertNotEqual(res[0].md5, res[1].md5)
         self.assertEqual(res.get(record='43').related.all().count(), 3)
 
-        def test_messy_relation(self):
+        def test_complex_relationships(self):
             dics = [
                 {'record': 40, 'numero': 'uno'},
                 {'record': 40, 'numero': 'due'},
@@ -244,6 +238,40 @@ class TestModule(TestCase):
         self.assertEqual(res.count(), 3)
 
 
+class TestUpdate(TestCase):
+    """
+    Test decision whether to update or to ignore.
+    """
+
+    def setUp(self):
+        pass
+
+    def test_double_load(self):
+        dics = [
+            {'record': 111, 'numero': 'uno'}
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(HashTestModel, dic, persistence=
+                'record')
+            generator.get_instance()
+            self.assertEqual(generator.res['created'], True)
+            self.assertEqual(generator.res['updated'], False)
+            self.assertEqual(generator.res['exists'], False)
+            generator = InstanceGenerator(HashTestModel, dic, persistence=
+                'record')
+            generator.get_instance()
+            self.assertEqual(generator.res['created'], False)
+            self.assertEqual(generator.res['updated'], False)
+            self.assertEqual(generator.res['exists'], True)
+            dic['numero'] = 2
+            generator = InstanceGenerator(HashTestModel, dic, persistence=
+                'record')
+            generator.get_instance()
+            self.assertEqual(generator.res['created'], False)
+            self.assertEqual(generator.res['updated'], True)
+            self.assertEqual(generator.res['exists'], False)
+
+
 class TestLoad(TestCase):
     """
     Tests data loading from file.
@@ -262,6 +290,9 @@ class TestLoad(TestCase):
 
 
 class TestReaders(TestCase):
+    """
+    Test readers, encoding problems in particular.
+    """
 
     def setUp(self):
         pass
