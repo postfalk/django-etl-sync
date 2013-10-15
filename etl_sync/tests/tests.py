@@ -274,7 +274,6 @@ class TestUpdate(TestCase):
             self.assertEqual(generator.res['exists'], False)
 
     def test_md5(self):
-        print('----------------------')
         dics = [
             {'record': 43, 'numero': 'due'},
             {'record': 43, 'numero': 'due'},

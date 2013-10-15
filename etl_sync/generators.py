@@ -38,6 +38,7 @@ class BaseInstanceGenerator(object):
     """
     Generates, evaluates, and saves instances from dictionary.
     """
+    hashfield = 'md5'
 
     def __init__(self, model_class, dic,
                  persistence=None,
@@ -76,7 +77,7 @@ class BaseInstanceGenerator(object):
         fields = instance._meta.fields
         out = u''
         for field in fields:
-            if not field.name in [u'md5', u'id']:
+            if not field.name in [self.hashfield, u'id']:
                 try:
                     value = unicode(getattr(instance, field.name))
                 except TypeError:
@@ -135,14 +136,14 @@ class BaseInstanceGenerator(object):
             self.res['exists'] = True
             return model_instance
 
-        if hasattr(model_instance, 'md5'):
+        if hasattr(model_instance, self.hashfield):
             hashvalue = self.hash_instance(model_instance)
-            res = self.model_class.objects.filter(md5=hashvalue)
+            res = self.model_class.objects.filter(**{self.hashfield: hashvalue})
             if res.count() != 0:
                 self.res['exists'] = True
                 self.assign_related(res[0], self.related_instances)
                 return res[0]
-            model_instance.md5 = hashvalue
+            setattr(model_instance, self.hashfield, hashvalue)
 
         if self.persistence:
             result = self.get_persistence_query(model_instance,
@@ -187,7 +188,7 @@ class BaseInstanceGenerator(object):
                     if (
                         field_type == 'ManyToManyField' or
                         not key in self.dic and
-                        key != 'md5'
+                        key != self.hashfield
                     ):
                         del dic[key]
                 try:
