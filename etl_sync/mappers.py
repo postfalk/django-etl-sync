@@ -51,10 +51,8 @@ class Mapper(object):
                 self.encoding = 'utf-8'
 
     def is_valid(self, dictionary):
-        """
-        Overwrite this class with conditions under
-        which a record will be accepted or rejected.
-        """
+        """Overwrite this class with conditions under which a record will be
+        accepted or rejected."""
         return True
 
     def transform(self, dictionary):

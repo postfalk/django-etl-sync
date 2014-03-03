@@ -77,7 +77,7 @@ class BaseInstanceGenerator(object):
         fields = instance._meta.fields
         out = u''
         for field in fields:
-            if not field.name in [self.hashfield, u'id']:
+            if not field.name in [self.hashfield, u'id', u'modified']:
                 try:
                     value = unicode(getattr(instance, field.name))
                 except TypeError:
