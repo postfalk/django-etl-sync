@@ -217,6 +217,8 @@ class InstanceGenerator(BaseInstanceGenerator):
     """
 
     def prepare(self, dic):
+        if isinstance(dic, self.model_class):
+            return dic
         model_instance = self.model_class()
         fieldnames = model_instance._meta.get_all_field_names()
         for fieldname in fieldnames:

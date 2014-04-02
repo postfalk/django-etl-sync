@@ -4,7 +4,6 @@ import warnings
 import unicodecsv as csv
 from datetime import datetime
 from django.conf import settings
-from etl_sync.readers import ShapefileReader
 from etl_sync.generators import InstanceGenerator
 
 
@@ -137,7 +136,7 @@ class Mapper(object):
                 if self.is_valid(dic):
                     generator = InstanceGenerator(self.model_class, dic,
                         persistence=self.etl_persistence)
-                    instance = generator.get_instance()
+                    generator.get_instance()
                     result = generator.res
                     if generator.log not in [None, '']:
                         print(generator.log, file=self.logfile)
