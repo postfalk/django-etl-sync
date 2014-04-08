@@ -125,6 +125,8 @@ class BaseInstanceGenerator(object):
         relationships.
         """
         model_instance = self.prepare(self.dic)
+        self.res = {'updated': False, 'created': False, 'rejected': False,
+                    'exists': False}
 
         if not model_instance:
             self.res['rejected'] = True
@@ -194,6 +196,7 @@ class BaseInstanceGenerator(object):
                     self.res['rejected'] = True
                     return model_instance
                 else:
+                    self.res['exists'] = True
                     self.res['updated'] = True
             else:
                 self.res['exists'] = True

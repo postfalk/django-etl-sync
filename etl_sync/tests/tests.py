@@ -9,9 +9,6 @@ from etl_sync.readers import unicode_dic
 
 class TestModule(TestCase):
 
-    def setUp(self):
-        pass
-
     def test_test_db(self):
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins'},
@@ -223,43 +220,34 @@ class TestModule(TestCase):
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)
 
+    def assertResult(self, res, expected):
+        self.assertEqual(res['updated'], expected[0])
+        self.assertEqual(res['exists'], expected[1])
+        self.assertEqual(res['rejected'], expected[2])
+        self.assertEqual(res['created'], expected[3])
+
     def test_results(self):
-        pass
-
-
-class TestUpdate(TestCase):
-    """
-    Test decision whether to update or to ignore.
-    """
-
-    def test_double_load(self):
-        dics = [{'record': 111, 'numero': 'uno'}]
-        for dic in dics:
-            generator = InstanceGenerator(
-                HashTestModel, dic, persistence='record')
-            generator.get_instance()
-            self.assertEqual(generator.res['created'], True)
-            self.assertEqual(generator.res['updated'], False)
-            self.assertEqual(generator.res['exists'], False)
-            generator = InstanceGenerator(
-                HashTestModel, dic, persistence='record')
-            generator.get_instance()
-            self.assertEqual(generator.res['created'], False)
-            self.assertEqual(generator.res['updated'], False)
-            self.assertEqual(generator.res['exists'], True)
-            dic['numero'] = 2
-            generator = InstanceGenerator(
-                HashTestModel, dic, persistence='record')
-            generator.get_instance()
-            self.assertEqual(generator.res['created'], False)
-            self.assertEqual(generator.res['updated'], True)
-            self.assertEqual(generator.res['exists'], False)
+        dic = {'record': 40, 'numero': 'uno'}
+        generator = InstanceGenerator(
+            HashTestModel, dic, persistence='record')
+        generator.get_instance()
+        self.assertResult(generator.res, (False, False, False, True))
+        generator.get_instance()
+        self.assertResult(generator.res, (False, True, False, False))
+        generator = InstanceGenerator(
+            HashTestModel, dic, persistence='record')
+        generator.get_instance()
+        self.assertResult(generator.res, (False, True, False, False))
+        dic['numero'] = 'due'
+        generator = InstanceGenerator(
+            HashTestModel, dic, persistence='record')
+        generator.get_instance()
+        self.assertResult(generator.res, (True, True, False, False))
 
     def test_md5(self):
-        dics = [
-            {'record': 43, 'numero': 'due'},
-            {'record': 43, 'numero': 'due'},
-            {'record': 43, 'numero': 'tres'}]
+        dics = [{'record': 43, 'numero': 'due'},
+                {'record': 43, 'numero': 'due'},
+                {'record': 43, 'numero': 'tres'}]
         generator = InstanceGenerator(
             HashTestModel, dics[0], persistence='record')
         instance = generator.get_instance()
