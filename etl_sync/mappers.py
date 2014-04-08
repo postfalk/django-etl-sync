@@ -9,7 +9,7 @@ from etl_sync.generators import InstanceGenerator
 
 def replace_empty_string_with_none(dic):
     """
-    Replaces empty values in the csv with None.
+    Replaces empty values None. Might be unnecessary.
     """
     for k in dic:
         try:
@@ -22,7 +22,7 @@ def replace_empty_string_with_none(dic):
 class Mapper(object):
     """
     Generic mapper object for ETL. Create reader_class for file formats other
-    than csv tab-delimited.
+    than tab-delimited CSV.
     """
     reader_class = None
     model_class = None
@@ -74,14 +74,17 @@ class Mapper(object):
         """
         start = datetime.now()
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-        logfilename = os.path.join(os.path.dirname(self.filename),
-            '{0}.{1}.log'.format(self.filename, start.date()))
+        logfilename = os.path.join(
+            os.path.dirname(self.filename), '{0}.{1}.log'.format(
+                self.filename, start.date()))
 
-        with open(self.filename, 'r') as sourcefile, open(logfilename, 'w'
-            ) as self.logfile:
+        with open(
+            self.filename, 'r') as sourcefile, open(
+                logfilename, 'w') as self.logfile:
 
-            print('Data extraction started {0}\n\nStart line: {1}\nEnd line {2}'
-                  .format(start, self.slice_begin, self.slice_end),
+            print('Data extraction started {0}\n\nStart line: '
+                  '{1}\nEnd line {2}'.format(
+                      start, self.slice_begin, self.slice_end),
                   file=self.logfile)
 
             counter = 0
@@ -95,8 +98,8 @@ class Mapper(object):
                 feedbacksize = 5000
 
             if not self.reader_class:
-                reader = csv.DictReader(sourcefile, delimiter='\t',
-                    quoting=csv.QUOTE_NONE)
+                reader = csv.DictReader(
+                    sourcefile, delimiter='\t', quoting=csv.QUOTE_NONE)
             else:
                 reader = self.reader_class(sourcefile)
 
@@ -134,7 +137,8 @@ class Mapper(object):
                     del dic['id']
 
                 if self.is_valid(dic):
-                    generator = InstanceGenerator(self.model_class, dic,
+                    generator = InstanceGenerator(
+                        self.model_class, dic,
                         persistence=self.etl_persistence)
                     generator.get_instance()
                     result = generator.res
@@ -153,17 +157,19 @@ class Mapper(object):
 
                 if counter % feedbacksize == 0:
                     print('{0} {1} processed in {2}, {3},'
-                        ' {4} created, {5} updated, {6} rejected'.format(
-                        self.message, feedbacksize, datetime.now() - start,
-                        counter, create_counter,
-                        update_counter, reject_counter))
+                          ' {4} created, {5} updated, {6} rejected'.format(
+                              self.message, feedbacksize,
+                              datetime.now() - start,
+                              counter, create_counter,
+                              update_counter, reject_counter))
                     start = datetime.now()
                     self.logfile.flush()
 
             print('\nData extraction finished {0}\n{1}'
-                'created\n{2} updated\n{3} rejected\n'.format(start,
-                create_counter, update_counter, reject_counter),
-                file=self.logfile)
+                  'created\n{2} updated\n{3} rejected\n'.format(
+                      start, create_counter, update_counter,
+                      reject_counter),
+                  file=self.logfile)
 
         # TODO: refine
         self.result = 'loaded'

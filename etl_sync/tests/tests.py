@@ -1,9 +1,6 @@
 import os
-from django.conf import settings
-from django.core.management import call_command
-from django.db.models import loading
 from django.test import TestCase
-from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre, Numero,
+from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre,
                                    Polish, TestModel, TestModelWoFk)
 from etl_sync.generators import BaseInstanceGenerator, InstanceGenerator
 from etl_sync.mappers import Mapper
@@ -57,7 +54,8 @@ class TestModule(TestCase):
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins', 'trash': 'rubish'},
         ]
-        generator = InstanceGenerator(TestModel, dics[0], persistence=['record'])
+        generator = InstanceGenerator(
+            TestModel, dics[0], persistence=['record'])
         generator.get_instance()
 
     def test_fk(self):
@@ -88,11 +86,9 @@ class TestModule(TestCase):
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins',
                 'nombre': {'name': 'un', 'etl_create': False},
-                'numero': 'quattre'
-            },
+                'numero': 'quattre'},
             {'record': '2', 'name': 'two', 'zahl': 'eins',
-                'numero': {'name': 'uno', 'etl_create': False}
-            }
+                'numero': {'name': 'uno', 'etl_create': False}}
         ]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
@@ -134,26 +130,22 @@ class TestModule(TestCase):
     def test_rel_creation(self):
         dics = [
             {'record': '1', 'name': 'one', 'related': [
-                    {'record': '10', 'ilosc': 'dziesiec',
-                        'persistence': 'record'},
-                    {'record': '20', 'ilosc': 'dwadziescia',
-                        'persistence': 'record'},
+                {'record': '10', 'ilosc': 'dziesiec',
+                    'persistence': 'record'},
+                {'record': '20', 'ilosc': 'dwadziescia',
+                    'persistence': 'record'},
                 ],
-                'numero': 'uno'
-            },
+                'numero': 'uno'},
             {'record': '2', 'name': 'one', 'related': [
-                    {'record': '10', 'ilosc': 'jedynka zero',
-                        'persistence': 'record'},
-                    {'record': '21', 'ilosc': 'dwadziescia jeden',
-                        'persistence': 'record'},
+                {'record': '10', 'ilosc': 'jedynka zero',
+                    'persistence': 'record'},
+                {'record': '21', 'ilosc': 'dwadziescia jeden',
+                    'persistence': 'record'},
                 ],
-                'numero': 'tre'
-            },
-        ]
+                'numero': 'tre'}]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
-            result = generator.res
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)
         # tests also field truncation
@@ -163,9 +155,7 @@ class TestModule(TestCase):
         self.assertEqual(len(res.filter(record='1')[0].related.values()), 2)
 
     def test_logging(self):
-        dics = [
-            {'record': '30', 'date': '3333', 'numero': 'uno'}
-        ]
+        dics = [{'record': '30', 'date': '3333', 'numero': 'uno'}]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
@@ -181,8 +171,7 @@ class TestModule(TestCase):
                         'persistence': 'record'},
                     {'record': '21', 'ilosc': 'dwadziescia jeden',
                         'persistence': 'record'},
-                ]
-            },
+                ]},
             {'record': 43, 'numero': 'quattre',
                 'related': [
                     {'record': '10', 'ilosc': 'jedynka zero',
@@ -191,14 +180,13 @@ class TestModule(TestCase):
                         'persistence': 'record'},
                     {'record': '19', 'ilosc': 'jeden',
                         'persistence': 'record'},
-                ]
-            },
+                ]},
             {'record': 43, 'zahl': None, 'numero': 'uno'},
             {'record': 43, 'zahl': None, 'numero': None}
         ]
         for dic in dics:
-            generator = InstanceGenerator(HashTestModel, dic,
-                persistence='record')
+            generator = InstanceGenerator(
+                HashTestModel, dic, persistence='record')
             generator.get_instance()
         res = HashTestModel.objects.all()
         self.assertEqual(res.count(), 2)
@@ -214,30 +202,29 @@ class TestModule(TestCase):
                     'related': [
                         {'record': '10', 'ilosc': 'jedynka zero'},
                         {'record': '21', 'ilosc': 'dwadziescia jeden'}
-                    ]
-                },
+                    ]},
                 {'record': 43, 'numero': 'quattre',
                     'related': [
                         {'record': '10', 'ilosc': 'jedynka zero'},
                         {'record': '21', 'ilosc': 'jeden'},
                         {'record': '19', 'ilosc': 'jeden'}
-                    ]
-                },
+                    ]},
                 {'record': 43, 'zahl': None, 'numero': 'uno'},
                 {'record': 43, 'zahl': None, 'numero': None},
                 {'record': 43, 'numero': 'tres',
                     'related': [
                         {'record': '10', 'ilosc': 'jedynka zero'},
                         {'record': '21', 'ilosc': 'dwadziescia jeden'}
-                    ]
-                },
-            ]
+                    ]}]
         for dic in dics:
-            generator = InstanceGenerator(HashTestModel, dic,
-                persistence='record')
+            generator = InstanceGenerator(
+                HashTestModel, dic, persistence='record')
             generator.get_instance()
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)
+
+    def test_results(self):
+        pass
 
 
 class TestUpdate(TestCase):
@@ -245,29 +232,24 @@ class TestUpdate(TestCase):
     Test decision whether to update or to ignore.
     """
 
-    def setUp(self):
-        pass
-
     def test_double_load(self):
-        dics = [
-            {'record': 111, 'numero': 'uno'}
-        ]
+        dics = [{'record': 111, 'numero': 'uno'}]
         for dic in dics:
-            generator = InstanceGenerator(HashTestModel, dic, persistence=
-                'record')
+            generator = InstanceGenerator(
+                HashTestModel, dic, persistence='record')
             generator.get_instance()
             self.assertEqual(generator.res['created'], True)
             self.assertEqual(generator.res['updated'], False)
             self.assertEqual(generator.res['exists'], False)
-            generator = InstanceGenerator(HashTestModel, dic, persistence=
-                'record')
+            generator = InstanceGenerator(
+                HashTestModel, dic, persistence='record')
             generator.get_instance()
             self.assertEqual(generator.res['created'], False)
             self.assertEqual(generator.res['updated'], False)
             self.assertEqual(generator.res['exists'], True)
             dic['numero'] = 2
-            generator = InstanceGenerator(HashTestModel, dic, persistence=
-                'record')
+            generator = InstanceGenerator(
+                HashTestModel, dic, persistence='record')
             generator.get_instance()
             self.assertEqual(generator.res['created'], False)
             self.assertEqual(generator.res['updated'], True)
@@ -277,18 +259,17 @@ class TestUpdate(TestCase):
         dics = [
             {'record': 43, 'numero': 'due'},
             {'record': 43, 'numero': 'due'},
-            {'record': 43, 'numero': 'tres'},
-        ]
-        generator = InstanceGenerator(HashTestModel, dics[0],
-            persistence='record')
+            {'record': 43, 'numero': 'tres'}]
+        generator = InstanceGenerator(
+            HashTestModel, dics[0], persistence='record')
         instance = generator.get_instance()
         hashvalue1 = instance.md5
-        generator = InstanceGenerator(HashTestModel, dics[1],
-            persistence='record')
+        generator = InstanceGenerator(
+            HashTestModel, dics[1], persistence='record')
         instance = generator.get_instance()
         self.assertEqual(hashvalue1, instance.md5)
-        generator = InstanceGenerator(HashTestModel, dics[2],
-            persistence='record')
+        generator = InstanceGenerator(
+            HashTestModel, dics[2], persistence='record')
         instance = generator.get_instance()
         self.assertNotEqual(hashvalue1, instance.md5)
         res = HashTestModel.objects.filter(record=43)
@@ -305,7 +286,7 @@ class TestLoad(TestCase):
 
     def test_load_from_file(self):
         path = os.path.dirname(os.path.realpath(__file__))
-        filename='{0}/data.txt'.format(path)
+        filename = '{0}/data.txt'.format(path)
         mapper = Mapper(filename=filename, model_class=TestModel)
         mapper.load()
         res = TestModel.objects.all()
@@ -321,6 +302,8 @@ class TestReaders(TestCase):
         pass
 
     def test_dic_decoder(self):
-        testdic = {'word': 'testword', 'number': 68898, 'utf8': 'testing\xc2\xa0'}
+        testdic = {
+            'word': 'testword', 'number': 68898, 'utf8': 'testing\xc2\xa0'
+        }
         dic = unicode_dic(testdic, 'utf-8')
         self.assertEqual(dic['utf8'], u'testing\xa0')

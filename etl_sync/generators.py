@@ -3,10 +3,8 @@ Classes that generate model instances from dictionaries.
 """
 from __future__ import print_function
 from hashlib import md5
-import os
 from django.db.models import Q
 from django.db import IntegrityError, DatabaseError
-from django.db.models.fields import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
 
@@ -77,7 +75,7 @@ class BaseInstanceGenerator(object):
         fields = instance._meta.fields
         out = u''
         for field in fields:
-            if not field.name in [self.hashfield, u'id', u'modified']:
+            if field.name not in [self.hashfield, u'id', u'modified']:
                 try:
                     value = unicode(getattr(instance, field.name))
                 except TypeError:
@@ -138,7 +136,8 @@ class BaseInstanceGenerator(object):
 
         if hasattr(model_instance, self.hashfield):
             hashvalue = self.hash_instance(model_instance)
-            res = self.model_class.objects.filter(**{self.hashfield: hashvalue})
+            res = self.model_class.objects.filter(
+                **{self.hashfield: hashvalue})
             if res.count() != 0:
                 self.res['exists'] = True
                 self.assign_related(res[0], self.related_instances)
@@ -155,8 +154,8 @@ class BaseInstanceGenerator(object):
             if 'id' in unique_fields:
                 unique_fields.remove('id')
             if len(unique_fields) > 0:
-                result = self.get_persistence_query(model_instance,
-                    unique_fields)
+                result = self.get_persistence_query(
+                    model_instance, unique_fields)
                 record_count = result.count()
             else:
                 record_count = 0
@@ -165,9 +164,7 @@ class BaseInstanceGenerator(object):
             if self.create:
                 try:
                     model_instance.clean_fields()
-                except ValidationError as error:
-                    print(model_instance.__class__, model_to_dict(model_instance))
-                    print(error.message_dict)
+                except ValidationError:
                     self.res['rejected'] = True
                 else:
                     try:
@@ -182,12 +179,12 @@ class BaseInstanceGenerator(object):
             if self.update:
                 dic = model_to_dict(model_instance)
                 for key in dic.copy():
-                    field_type = model_instance._meta.get_field(key
-                        ).get_internal_type()
+                    field_type = model_instance._meta.get_field(
+                        key).get_internal_type()
                     # TODO make this more elegant
                     if (
                         field_type == 'ManyToManyField' or
-                        not key in self.dic and
+                        key not in self.dic and
                         key != self.hashfield
                     ):
                         del dic[key]
@@ -222,15 +219,15 @@ class InstanceGenerator(BaseInstanceGenerator):
         model_instance = self.model_class()
         fieldnames = model_instance._meta.get_all_field_names()
         for fieldname in fieldnames:
-            if not fieldname in dic:
+            if fieldname not in dic:
                 continue
             field = model_instance._meta.get_field(fieldname)
             fieldtype = field.get_internal_type()
             fieldvalue = None
 
             if fieldtype == 'ForeignKey':
-                fieldvalue = FkInstanceGenerator(field, dic[fieldname]
-                    ).get_instance()
+                fieldvalue = FkInstanceGenerator(
+                    field, dic[fieldname]).get_instance()
 
             elif fieldtype == 'ManyToManyField':
                 if isinstance(dic[fieldname], list):
