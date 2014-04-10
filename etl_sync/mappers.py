@@ -41,11 +41,16 @@ class Mapper(object):
                 self.feedbacksize = settings.ETL_FEEDBACK
 
     def is_valid(self, dictionary):
-        """Overwrite this class with conditions under which a record will be
-        accepted or rejected."""
+        """
+        Overwrite this class with conditions under which a record will be
+        accepted or rejected.
+        """
         return True
 
     def log(self, text):
+        """
+        Log to logfile or to stdout if self.logfile=None
+        """
         print(text, file=self.logfile)
 
     def transform(self, dictionary):
@@ -103,7 +108,7 @@ class Mapper(object):
                 # TODO: Generalize error handling for various readers
                 except csv.Error:
                     self.log(
-                        'CSV error (blank line?) in '.formatst(
+                        'CSV error (blank line?) in '.format(
                             counter))
                     reject_counter += 1
                     continue
