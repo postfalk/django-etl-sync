@@ -1,4 +1,5 @@
 from __future__ import print_function
+from django.core.exceptions import ValidationError
 import os
 import warnings
 import unicodecsv as csv
@@ -41,12 +42,11 @@ class Mapper(object):
             if hasattr(settings, 'ETL_FEEDBACK'):
                 self.feedbacksize = settings.ETL_FEEDBACK
 
-    def is_valid(self, dictionary):
+    def validate(self, dic):
         """
-        Overwrite this class with conditions under which a record will be
-        accepted or rejected.
+        Raise ValidationError here.
         """
-        return True
+        pass
 
     def log(self, text):
         """
@@ -88,16 +88,19 @@ class Mapper(object):
         return dic
 
     def full_transform(self, dic):
-        """Runs all three transformation steps."""
-        dic = self.remap(dic)
+        """
+        Runs all four transformation steps.
+        """
         dic = self.apply_defaults(dic)
+        dic = self.remap(dic)
         dic = self.transform(dic)
         dic = self.process_forms(dic)
+        self.validate(dic)
         return dic
 
     def load(self):
         """
-        Loads data into database using model and Django ORM.
+        Loads data into database using Django models and error logging.
         """
         start = datetime.now()
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
@@ -109,42 +112,39 @@ class Mapper(object):
                 logfilename, 'w') as self.logfile:
             self.log(
                 'Data extraction started {0}\n\nStart line: '
-                '{1}\nEnd line {2}'.format(
+                '{1}\nEnd line: {2}\n'.format(
                     start, self.slice_begin, self.slice_end))
             counter = 0
             create_counter = 0
             update_counter = 0
             reject_counter = 0
-            if not self.reader_class:
+            if self.reader_class:
+                reader = self.reader_class(sourcefile)
+            else:
                 reader = csv.DictReader(
                     sourcefile, delimiter='\t', quoting=csv.QUOTE_NONE)
-            else:
-                reader = self.reader_class(sourcefile)
             while self.slice_begin and self.slice_begin > counter:
                 counter += 1
                 reader.next()
-            while True:
+            while not self.slice_end or self.slice_end < counter:
                 counter += 1
                 try:
                     csv_dic = reader.next()
-                except UnicodeDecodeError:
+                except (UnicodeDecodeError, csv.Error):
                     self.log(
-                        'Text decoding error in line {0} => rejected'.format(
-                            counter))
-                    reject_counter += 1
-                    continue
-                # TODO: Generalize error handling for various readers
-                except csv.Error:
-                    self.log(
-                        'CSV error (blank line?) in '.format(
-                            counter))
+                        'Text decoding or CSV error in line {0} '
+                        '=> rejected'.format(counter))
                     reject_counter += 1
                     continue
                 except StopIteration:
                     break
-                if self.slice_end and counter > self.slice_end:
-                    break
-                dic = self.full_transform(csv_dic)
+                try:
+                    dic = self.full_transform(csv_dic)
+                except ValidationError, e:
+                    self.log('Validation error in line {0}: {1} '
+                             '=> rejected'.format(counter, str(e)))
+                    reject_counter += 1
+                    continue
                 # remove keywords conflicting with Django model
                 # TODO: I think that is done in several places now
                 # determine the one correct one and get rid of the others
@@ -152,23 +152,16 @@ class Mapper(object):
                     del dic['id']
                 result = {'created': False, 'updated': False,
                           'exists': False, 'rejected': False}
-                if self.is_valid(dic):
-                    generator = InstanceGenerator(
-                        self.model_class, dic,
-                        persistence=self.etl_persistence)
-                    generator.get_instance()
-                    result = generator.res
-                    if generator.log:
-                        self.log(generator.log)
-                else:
-                    reject_counter += 1
+                generator = InstanceGenerator(
+                    self.model_class, dic,
+                    persistence=self.etl_persistence)
+                generator.get_instance()
+                result = generator.res
+                if generator.log:
+                    self.log(generator.log)
                 create_counter += result['created']
                 update_counter += result['updated']
                 reject_counter += result['rejected']
-                if result['rejected']:
-                    self.log(
-                        'line {0} ==> rejected\n{1}\n'.format(
-                            counter, csv_dic))
                 if counter % self.feedbacksize == 0:
                     print('{0} {1} processed in {2}, {3},'
                           ' {4} created, {5} updated, {6} rejected'.format(
@@ -178,8 +171,8 @@ class Mapper(object):
                               update_counter, reject_counter))
                     start = datetime.now()
             self.log(
-                '\nData extraction finished {0}\n{1}'
-                'created\n{2} updated\n{3} rejected\n'.format(
+                '\nData extraction finished {0}\n\n{1} '
+                'created\n{2} updated\n{3} rejected'.format(
                     start, create_counter, update_counter,
                     reject_counter))
         self.result = 'loaded'

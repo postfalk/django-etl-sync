@@ -212,13 +212,15 @@ class TestModule(TestCase):
                     'related': [
                         {'record': '10', 'ilosc': 'jedynka zero'},
                         {'record': '21', 'ilosc': 'dwadziescia jeden'}
-                    ]}]
-        for dic in dics:
-            generator = InstanceGenerator(
-                HashTestModel, dic, persistence='record')
-            generator.get_instance()
-        res = Polish.objects.all()
-        self.assertEqual(res.count(), 3)
+                    ]
+                 }
+            ]
+            for dic in dics:
+                generator = InstanceGenerator(
+                    HashTestModel, dic, persistence='record')
+                generator.get_instance()
+            res = Polish.objects.all()
+            self.assertEqual(res.count(), 3)
 
     def assertResult(self, res, expected):
         self.assertEqual(res['updated'], expected[0])
@@ -269,9 +271,6 @@ class TestLoad(TestCase):
     Tests data loading from file.
     """
 
-    def setUp(self):
-        pass
-
     def test_load_from_file(self):
         path = os.path.dirname(os.path.realpath(__file__))
         filename = '{0}/data.txt'.format(path)
@@ -286,12 +285,13 @@ class TestReaders(TestCase):
     Test readers, encoding problems in particular.
     """
 
-    def setUp(self):
-        pass
-
     def test_dic_decoder(self):
         testdic = {
             'word': 'testword', 'number': 68898, 'utf8': 'testing\xc2\xa0'
         }
         dic = unicode_dic(testdic, 'utf-8')
         self.assertEqual(dic['utf8'], u'testing\xa0')
+
+
+class TestValidationError(TestCase):
+    pass
