@@ -27,6 +27,7 @@ class Mapper(object):
     result = None
     feedbacksize = 5000
     logfile = None
+    forms = []
 
     def __init__(self, *args, **kwargs):
         for k in kwargs:
@@ -53,18 +54,45 @@ class Mapper(object):
         """
         print(text, file=self.logfile)
 
-    def transform(self, dictionary):
+    def remap(self, dic):
         """
-        Performs transformations on the dictionary loaded from csv line.
-        The output keys need to match model destination attribute names.
-        Keys not present as model fields will be ignored in load.
-        Extend this method for custom transformations.
+        Use this method for remapping dictionary keys.
+        """
+        return dic
+
+    def process_forms(self, dic):
+        """
+        Processes a list of forms.
+        """
+        for form in self.forms:
+            frm = form(dic)
+            if frm.is_valid():
+                dic.update(frm.cleaned_data)
+        return dic
+
+    def transform(self, dic):
+        """
+        Additional transformations not covered by remap and forms.
+        """
+        return dic
+
+    def apply_defaults(self, dictionary):
+        """
+        Adds defaults to the dictionary.
         """
         if type(self.default_values) is dict:
             dic = self.default_values.copy()
         else:
             dic = {}
         dic = dict(dic.items() + dictionary.items())
+        return dic
+
+    def full_transform(self, dic):
+        """Runs all three transformation steps."""
+        dic = self.remap(dic)
+        dic = self.apply_defaults(dic)
+        dic = self.transform(dic)
+        dic = self.process_forms(dic)
         return dic
 
     def load(self):
@@ -116,7 +144,7 @@ class Mapper(object):
                     break
                 if self.slice_end and counter > self.slice_end:
                     break
-                dic = self.transform(csv_dic)
+                dic = self.full_transform(csv_dic)
                 # remove keywords conflicting with Django model
                 # TODO: I think that is done in several places now
                 # determine the one correct one and get rid of the others
