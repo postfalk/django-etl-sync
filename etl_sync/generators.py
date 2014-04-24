@@ -4,7 +4,6 @@ Classes that generate model instances from dictionaries.
 from __future__ import print_function
 from hashlib import md5
 from django.db.models import Q
-from django.db import IntegrityError, DatabaseError
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
 
@@ -29,9 +28,7 @@ class BaseInstanceGenerator(object):
     def __init__(self, model_class, dic, persistence=None,
                  create_foreign_key=True, save=True, update=True,
                  create=True):
-        """
-        Set options from kwargs and dic params (TODO: add this part.).
-        """
+        """Set options from kwargs and dic params."""
         self.model_class = model_class
         self.dic = dic or {}
         self.persistence = persistence
@@ -54,13 +51,11 @@ class BaseInstanceGenerator(object):
         self.related_instances = {}
 
     def hash_instance(self, instance):
-        """
-        Method for hashing.
-        """
+        """Method for hashing."""
         fields = instance._meta.fields
         out = u''
         for field in fields:
-            if field.name not in [self.hashfield, u'id', u'modified']:
+            if field.name not in [self.hashfield, u'id', u'last_modified']:
                 try:
                     value = unicode(getattr(instance, field.name))
                 except TypeError:
@@ -72,17 +67,13 @@ class BaseInstanceGenerator(object):
         return ret
 
     def prepare(self, dic):
-        """
-        Basic model to dic conversion works only for models without relational
-        field type. Subclass for more complicated preparations.
-        """
+        """Basic dic to model conversion works only for models without relational
+        field type. Subclass for more complicated preparations."""
         return self.model_class(**dic)
 
     def get_persistence_query(self, model_instance, persistence):
-        """
-        Get the query to determine whether record already exists
-        depending on persistence definition.
-        """
+        """Get query to determine whether record already exists
+        depending on persistence definition."""
         query = Q()
         for pfield in persistence:
             try:
@@ -95,9 +86,7 @@ class BaseInstanceGenerator(object):
         return self.model_class.objects.filter(query)
 
     def assign_related(self, instance, rel_inst_dic):
-        """
-        Assign related instances (use after saving).
-        """
+        """Assign related instances (use after saving)."""
         for key, item in rel_inst_dic.iteritems():
             try:
                 getattr(instance, key).add(*item)
@@ -105,92 +94,71 @@ class BaseInstanceGenerator(object):
                 pass
 
     def get_instance(self):
-        """
-        Create or get instance and add it to the database and create
-        relationships.
-        """
+        """Create or get instance and add it to the database and create
+        relationships."""
         model_instance = self.prepare(self.dic)
         self.res = {'updated': False, 'created': False, 'exists': False}
-
-        if not model_instance:
-            raise ValidationError('Failure creating instance')
-
-        if model_instance.pk:
-            self.res['exists'] = True
-            return model_instance
-
-        if hasattr(model_instance, self.hashfield):
-            hashvalue = self.hash_instance(model_instance)
-            res = self.model_class.objects.filter(
-                **{self.hashfield: hashvalue})
-            if res.count() != 0:
+        if model_instance:
+            if model_instance.pk:
                 self.res['exists'] = True
-                self.assign_related(res[0], self.related_instances)
-                return res[0]
-            setattr(model_instance, self.hashfield, hashvalue)
-
-        if self.persistence:
-            result = self.get_persistence_query(model_instance,
-                                                self.persistence)
-            record_count = result.count()
-        else:
-            unique_fields = get_unique_fields(model_instance)
-            # redundant?
-            if 'id' in unique_fields:
-                unique_fields.remove('id')
-            if len(unique_fields) > 0:
+                return model_instance
+            if hasattr(model_instance, self.hashfield):
+                hashvalue = self.hash_instance(model_instance)
+                res = self.model_class.objects.filter(
+                    **{self.hashfield: hashvalue})
+                if res.count() != 0:
+                    self.res['exists'] = True
+                    self.assign_related(res[0], self.related_instances)
+                    return res[0]
+                setattr(model_instance, self.hashfield, hashvalue)
+            if self.persistence:
                 result = self.get_persistence_query(
-                    model_instance, unique_fields)
+                    model_instance, self.persistence)
                 record_count = result.count()
             else:
-                record_count = 0
-
-        if record_count == 0:
-            if self.create:
-                try:
+                unique_fields = get_unique_fields(model_instance)
+                # redundant?
+                if 'id' in unique_fields:
+                    unique_fields.remove('id')
+                if len(unique_fields) > 0:
+                    result = self.get_persistence_query(
+                        model_instance, unique_fields)
+                    record_count = result.count()
+                else:
+                    record_count = 0
+            if record_count == 0:
+                if self.create:
                     model_instance.clean_fields()
-                except ValidationError:
-                    self.res['rejected'] = True
-                else:
-                    try:
-                        model_instance.save()
-                    except IntegrityError:
-                        self.res['rejected'] = True
-                    else:
-                        self.res['created'] = True
-            self.assign_related(model_instance, self.related_instances)
+                    model_instance.save()
+                    self.res['created'] = True
+                self.assign_related(model_instance, self.related_instances)
 
-        elif record_count == 1:
-            if self.update:
-                dic = model_to_dict(model_instance)
-                for key in dic.copy():
-                    field_type = model_instance._meta.get_field(
-                        key).get_internal_type()
-                    # TODO make this more elegant
-                    if (
-                        field_type == 'ManyToManyField' or
-                        key not in self.dic and
-                        key != self.hashfield
-                    ):
-                        del dic[key]
-                try:
+            elif record_count == 1:
+                if self.update:
+                    dic = model_to_dict(model_instance)
+                    for key in dic.copy():
+                        field_type = model_instance._meta.get_field(
+                            key).get_internal_type()
+                        # TODO make this more elegant
+                        if (
+                            field_type == 'ManyToManyField' or
+                            key not in self.dic and
+                            key != self.hashfield
+                        ):
+                            del dic[key]
                     result.update(**dic)
-                except (IntegrityError, DatabaseError):
-                    raise ValidationError(
-                        'Integrity or other database error.')
-                else:
                     self.res['exists'] = True
                     self.res['updated'] = True
+                else:
+                    self.res['exists'] = True
+                model_instance = result[0]
+
             else:
-                self.res['exists'] = True
-            model_instance = result[0]
+                self.res['rejected'] = True
+                return model_instance
 
-        else:
-            self.res['rejected'] = True
+            self.assign_related(model_instance, self.related_instances)
             return model_instance
-
-        self.assign_related(model_instance, self.related_instances)
-        return model_instance
 
 
 class InstanceGenerator(BaseInstanceGenerator):
@@ -250,7 +218,6 @@ class InstanceGenerator(BaseInstanceGenerator):
                 setattr(model_instance, fieldname, fieldvalue)
             except ValueError:
                 pass
-
         return model_instance
 
 

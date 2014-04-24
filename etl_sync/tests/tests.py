@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre,
                                    Polish, TestModel, TestModelWoFk)
 from etl_sync.generators import BaseInstanceGenerator, InstanceGenerator
-from etl_sync.mappers import Mapper
+from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.readers import unicode_dic
 
 
@@ -48,14 +48,6 @@ class TestModule(TestCase):
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
         res.delete()
 
-    def test_full_instance_generator(self):
-        dics = [
-            {'record': '1', 'name': 'one', 'zahl': 'eins', 'trash': 'rubish'},
-        ]
-        generator = InstanceGenerator(
-            TestModel, dics[0], persistence=['record'])
-        generator.get_instance()
-
     def test_fk(self):
         ins = Nombre(name='un')
         dics = [
@@ -84,17 +76,20 @@ class TestModule(TestCase):
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins',
                 'nombre': {'name': 'un', 'etl_create': False},
-                'numero': 'quattre'},
+             'numero': 'quattre', 'expect': True},
             {'record': '2', 'name': 'two', 'zahl': 'eins',
-                'numero': {'name': 'uno', 'etl_create': False}}
+                'numero': {'name': 'uno', 'etl_create': False},
+             'expect': False}
         ]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
-            generator.get_instance()
+            if dic['expect']:
+                generator.get_instance()
+            else:
+                self.assertRaises(ValidationError, generator.get_instance)
             result = generator.res
         # nombre example with fk that allows None
         # numero example with fk that does not allow None
-        self.assertEqual(result['rejected'], True)
         self.assertEqual(result['created'], False)
         self.assertEqual(result['updated'], False)
         self.assertEqual(Nombre.objects.all().count(), 0)
@@ -296,3 +291,26 @@ class TestReaders(TestCase):
 
 class TestValidationError(TestCase):
     pass
+
+
+class TestFeedbackCounter(TestCase):
+
+    def test_feedbackcounter(self):
+        counter = FeedbackCounter(feedbacksize=2, message='test')
+        self.assertEqual(counter.feedbacksize, 2)
+        self.assertEqual(counter.counter, 0)
+        counter.increment()
+        self.assertEqual(counter.counter, 1)
+        counter.increment()
+        self.assertEqual(counter.counter, 2)
+        counter.reject()
+        self.assertEqual(counter.counter, 3)
+        self.assertEqual(counter.rejected, 1)
+        counter.update()
+        self.assertEqual(counter.counter, 4)
+        self.assertEqual(counter.rejected, 1)
+        self.assertEqual(counter.updated, 1)
+        counter.create()
+        self.assertEqual(counter.counter, 5)
+        self.assertEqual(counter.updated, 1)
+        self.assertEqual(counter.created, 1)
