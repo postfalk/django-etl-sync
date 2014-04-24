@@ -1,5 +1,6 @@
 import os
 from django.test import TestCase
+from django.core.exceptions import ValidationError
 from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre,
                                    Polish, TestModel, TestModelWoFk)
 from etl_sync.generators import BaseInstanceGenerator, InstanceGenerator
@@ -151,12 +152,11 @@ class TestModule(TestCase):
         self.assertEqual(res.count(), 2)
         self.assertEqual(len(res.filter(record='1')[0].related.values()), 2)
 
-    def test_logging(self):
+    def test_validation(self):
         dics = [{'record': '30', 'date': '3333', 'numero': 'uno'}]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
-            generator.get_instance()
-        self.assertEqual(generator.log, '\nincorrect date: 3333, record 30')
+            self.assertRaises(ValidationError, generator.get_instance)
 
     def test_hashing(self):
         dics = [
@@ -179,12 +179,14 @@ class TestModule(TestCase):
                         'persistence': 'record'},
                 ]},
             {'record': 43, 'zahl': None, 'numero': 'uno'},
-            {'record': 43, 'zahl': None, 'numero': None}
         ]
         for dic in dics:
             generator = InstanceGenerator(
                 HashTestModel, dic, persistence='record')
-            generator.get_instance()
+            try:
+                generator.get_instance()
+            except:
+                print dic
         res = HashTestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(res.filter(record='40')[0].numero.name, 'due')
@@ -225,26 +227,25 @@ class TestModule(TestCase):
     def assertResult(self, res, expected):
         self.assertEqual(res['updated'], expected[0])
         self.assertEqual(res['exists'], expected[1])
-        self.assertEqual(res['rejected'], expected[2])
-        self.assertEqual(res['created'], expected[3])
+        self.assertEqual(res['created'], expected[2])
 
     def test_results(self):
         dic = {'record': 40, 'numero': 'uno'}
         generator = InstanceGenerator(
             HashTestModel, dic, persistence='record')
         generator.get_instance()
-        self.assertResult(generator.res, (False, False, False, True))
+        self.assertResult(generator.res, (False, False, True))
         generator.get_instance()
-        self.assertResult(generator.res, (False, True, False, False))
+        self.assertResult(generator.res, (False, True, False))
         generator = InstanceGenerator(
             HashTestModel, dic, persistence='record')
         generator.get_instance()
-        self.assertResult(generator.res, (False, True, False, False))
+        self.assertResult(generator.res, (False, True, False))
         dic['numero'] = 'due'
         generator = InstanceGenerator(
             HashTestModel, dic, persistence='record')
         generator.get_instance()
-        self.assertResult(generator.res, (True, True, False, False))
+        self.assertResult(generator.res, (True, True, False))
 
     def test_md5(self):
         dics = [{'record': 43, 'numero': 'due'},

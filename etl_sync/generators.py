@@ -9,18 +9,6 @@ from django.forms.models import model_to_dict
 from django.forms import DateTimeField, ValidationError
 
 
-def indent_log(message):
-    """Indent log messages from subroutines."""
-    if message:
-        return '  ' + message.replace('\n', '\n  ')
-
-
-def append_log(log, message):
-    """Append messages to log."""
-    if message:
-        return '{0}\n{1}'.format(log, message)
-
-
 def get_unique_fields(model_class):
     """
     Get model fields with attribute unique.
@@ -38,11 +26,8 @@ class BaseInstanceGenerator(object):
     """
     hashfield = 'md5'
 
-    def __init__(self, model_class, dic,
-                 persistence=None,
-                 create_foreign_key=True,
-                 save=True,
-                 update=True,
+    def __init__(self, model_class, dic, persistence=None,
+                 create_foreign_key=True, save=True, update=True,
                  create=True):
         """
         Set options from kwargs and dic params (TODO: add this part.).
@@ -54,9 +39,9 @@ class BaseInstanceGenerator(object):
         self.save = save
         self.update = update
         self.create = create
-        self.log = ''
-        self.res = {'updated': False, 'created': False, 'rejected': False,
-                    'exists': False}
+        self.res = {
+            'updated': False, 'created': False, 'rejected': False,
+            'exists': False}
         if isinstance(dic, dict):
             if 'etl_persistence' in dic:
                 self.persistence = dic['etl_persistence']
@@ -125,12 +110,10 @@ class BaseInstanceGenerator(object):
         relationships.
         """
         model_instance = self.prepare(self.dic)
-        self.res = {'updated': False, 'created': False, 'rejected': False,
-                    'exists': False}
+        self.res = {'updated': False, 'created': False, 'exists': False}
 
         if not model_instance:
-            self.res['rejected'] = True
-            return None
+            raise ValidationError('Failure creating instance')
 
         if model_instance.pk:
             self.res['exists'] = True
@@ -193,8 +176,8 @@ class BaseInstanceGenerator(object):
                 try:
                     result.update(**dic)
                 except (IntegrityError, DatabaseError):
-                    self.res['rejected'] = True
-                    return model_instance
+                    raise ValidationError(
+                        'Integrity or other database error.')
                 else:
                     self.res['exists'] = True
                     self.res['updated'] = True
@@ -243,16 +226,9 @@ class InstanceGenerator(BaseInstanceGenerator):
                             generator.get_instance())
 
             elif fieldtype == 'DateTimeField':
-                validator = DateTimeField()
-                try:
-                    cleaned_field = validator.clean(self.dic[fieldname])
-                except ValidationError:
-                    message = 'incorrect {0}: {1}, record {2}'.format(
-                        fieldname, dic[fieldname], dic['record'])
-                    self.log = append_log(self.log, message)
-                    fieldvalue = None
-                else:
-                    fieldvalue = cleaned_field
+                if not (field.auto_now or field.auto_now_add):
+                    validator = DateTimeField()
+                    fieldvalue = validator.clean(self.dic[fieldname])
 
             elif fieldtype == 'GeometryField':
                 fieldvalue = dic[fieldname]

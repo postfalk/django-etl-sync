@@ -68,6 +68,9 @@ class Mapper(object):
             frm = form(dic)
             if frm.is_valid():
                 dic.update(frm.cleaned_data)
+            else:
+                for error in frm.errors['__all__']:
+                    raise ValidationError(error)
         return dic
 
     def transform(self, dic):
@@ -126,7 +129,7 @@ class Mapper(object):
             while self.slice_begin and self.slice_begin > counter:
                 counter += 1
                 reader.next()
-            while not self.slice_end or self.slice_end < counter:
+            while not self.slice_end or self.slice_end > counter:
                 counter += 1
                 try:
                     csv_dic = reader.next()
@@ -150,18 +153,18 @@ class Mapper(object):
                 # determine the one correct one and get rid of the others
                 if 'id' in dic:
                     del dic['id']
-                result = {'created': False, 'updated': False,
-                          'exists': False, 'rejected': False}
                 generator = InstanceGenerator(
                     self.model_class, dic,
                     persistence=self.etl_persistence)
-                generator.get_instance()
-                result = generator.res
-                if generator.log:
-                    self.log(generator.log)
-                create_counter += result['created']
-                update_counter += result['updated']
-                reject_counter += result['rejected']
+                try:
+                    generator.get_instance()
+                except Exception, e:
+                    self.log('Error in line {0}: {1} => rejected'.format(
+                        counter, str(e)))
+                    reject_counter += 1
+                    continue
+                create_counter += generator.res['created']
+                update_counter += generator.res['updated']
                 if counter % self.feedbacksize == 0:
                     print('{0} {1} processed in {2}, {3},'
                           ' {4} created, {5} updated, {6} rejected'.format(
