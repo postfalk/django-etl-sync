@@ -86,6 +86,7 @@ class Mapper(object):
     result = None
     feedbacksize = 5000
     logfile = None
+    logfilename = None
     forms = []
 
     def __init__(self, *args, **kwargs):
@@ -95,10 +96,14 @@ class Mapper(object):
             else:
                 warnings.warn(
                     'Invalid keyword argument for Mapper will be ignored.')
-            if not self.encoding or self.encoding == '':
-                self.encoding = 'utf-8'
-            if hasattr(settings, 'ETL_FEEDBACK'):
-                self.feedbacksize = settings.ETL_FEEDBACK
+        if not self.encoding:
+            self.encoding = 'utf-8'
+        if hasattr(settings, 'ETL_FEEDBACK'):
+            self.feedbacksize = settings.ETL_FEEDBACK
+        if self.filename:
+            self.logfilename = os.path.join(
+                os.path.dirname(self.filename), '{0}.{1}.log'.format(
+                    self.filename, datetime.now().strftime('%Y-%m-%d')))
 
     def _log(self, text):
         """Log to logfile or to stdout if self.logfile=None"""
@@ -124,7 +129,6 @@ class Mapper(object):
         dic = dict(dic.items() + dictionary.items())
         return dic
 
-
     def validate(self, dic):
         """Raise ValidationError here."""
         pass
@@ -149,12 +153,9 @@ class Mapper(object):
     def load(self):
         """Loads data into database using Django models and error logging."""
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-        logfilename = os.path.join(
-            os.path.dirname(self.filename), '{0}.{1}.log'.format(
-                self.filename, datetime.now().strftime('%Y-%m-%d')))
         with open(
             self.filename, 'r') as sourcefile, open(
-                logfilename, 'w') as self.logfile:
+                self.logfilename, 'w') as self.logfile:
             self._log(
                 'Data extraction started {0}\n\nStart line: '
                 '{1}\nEnd line: {2}\n'.format(

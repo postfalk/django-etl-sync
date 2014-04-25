@@ -1,28 +1,24 @@
-"""
-Classes that generate model instances from dictionaries.
-"""
+"""Classes that generate model instances from dictionaries."""
 from __future__ import print_function
 from hashlib import md5
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms.models import model_to_dict
-from django.forms import DateTimeField, ValidationError
+from django.forms import DateTimeField
 
 
 def get_unique_fields(model_class):
-    """
-    Get model fields with attribute unique.
-    """
+    """Get model fields with attribute unique."""
     ret = []
     for field in model_class._meta.fields:
-        if field.unique:
+        if field.unique and not field.name == 'id':
             ret.append(field.name)
     return ret
 
 
 class BaseInstanceGenerator(object):
-    """
-    Generates, evaluates, and saves instances from dictionary.
-    """
+    """Generates, evaluates, and saves instances from dictionary
+    or object."""
     hashfield = 'md5'
 
     def __init__(self, model_class, dic, persistence=None,
@@ -36,9 +32,7 @@ class BaseInstanceGenerator(object):
         self.save = save
         self.update = update
         self.create = create
-        self.res = {
-            'updated': False, 'created': False, 'rejected': False,
-            'exists': False}
+        self.res = {'updated': False, 'created': False, 'exists': False}
         if isinstance(dic, dict):
             if 'etl_persistence' in dic:
                 self.persistence = dic['etl_persistence']
@@ -66,32 +60,76 @@ class BaseInstanceGenerator(object):
         ret = md5(out.encode('utf-8')).hexdigest()
         return ret
 
-    def prepare(self, dic):
-        """Basic dic to model conversion works only for models without relational
-        field type. Subclass for more complicated preparations."""
-        return self.model_class(**dic)
-
-    def get_persistence_query(self, model_instance, persistence):
+    def _get_persistence_query(self, model_instance, persistence):
         """Get query to determine whether record already exists
         depending on persistence definition."""
         query = Q()
-        for pfield in persistence:
+        for fieldname in persistence:
             try:
-                attr = getattr(model_instance, pfield)
+                value = getattr(model_instance, fieldname)
             except AttributeError:
                 pass
             else:
-                if attr:
-                    query = query & Q(**{pfield: attr})
+                if value:
+                    query = query & Q(**{fieldname: value})
         return self.model_class.objects.filter(query)
 
-    def assign_related(self, instance, rel_inst_dic):
-        """Assign related instances (use after saving)."""
+    def _check_persistence(self, instance, persistence):
+        """Returns a number of how many records fulfill the
+        persistence criterion."""
+        if not persistence:
+            unique_fields = get_unique_fields(instance)
+            if unique_fields:
+                persistence = unique_fields
+            else:
+                return 0, None
+        qs = self._get_persistence_query(instance, persistence)
+        return qs.count(), qs
+
+    def _assign_related(self, instance, rel_inst_dic):
+        """Assign related instances after saving."""
         for key, item in rel_inst_dic.iteritems():
             try:
                 getattr(instance, key).add(*item)
             except ValueError:
                 pass
+
+    def create_in_db(self, instance, persistence_qs):
+        """Creates entry in DB."""
+        if self.create:
+            instance.clean_fields()
+            instance.save()
+            self.res['created'] = True
+            return instance
+        # TODO: work on error handling
+        # else:
+        #    raise ValidationError(
+        #       'Record does not exists and create flag is False')
+
+    def update_in_db(self, instance, persistence_qs):
+        if self.update:
+            dic = model_to_dict(instance)
+            for key in dic.copy():
+                field_type = instance._meta.get_field(
+                    key).get_internal_type()
+                # TODO make this more elegant
+                if (
+                    field_type == 'ManyToManyField' or
+                    key not in self.dic and
+                    key != self.hashfield
+                ):
+                    del dic[key]
+            persistence_qs.update(**dic)
+            self.res['exists'] = True
+            self.res['updated'] = True
+        else:
+            self.res['exists'] = True
+        return persistence_qs[0]
+
+    def prepare(self, dic):
+        """Basic dic to model conversion works only for models without relational
+        field type. Subclass for more complicated preparations."""
+        return self.model_class(**dic)
 
     def get_instance(self):
         """Create or get instance and add it to the database and create
@@ -108,64 +146,64 @@ class BaseInstanceGenerator(object):
                     **{self.hashfield: hashvalue})
                 if res.count() != 0:
                     self.res['exists'] = True
-                    self.assign_related(res[0], self.related_instances)
+                    self._assign_related(res[0], self.related_instances)
                     return res[0]
                 setattr(model_instance, self.hashfield, hashvalue)
-            if self.persistence:
-                result = self.get_persistence_query(
-                    model_instance, self.persistence)
-                record_count = result.count()
-            else:
-                unique_fields = get_unique_fields(model_instance)
-                # redundant?
-                if 'id' in unique_fields:
-                    unique_fields.remove('id')
-                if len(unique_fields) > 0:
-                    result = self.get_persistence_query(
-                        model_instance, unique_fields)
-                    record_count = result.count()
-                else:
-                    record_count = 0
-            if record_count == 0:
-                if self.create:
-                    model_instance.clean_fields()
-                    model_instance.save()
-                    self.res['created'] = True
-                self.assign_related(model_instance, self.related_instances)
-
-            elif record_count == 1:
-                if self.update:
-                    dic = model_to_dict(model_instance)
-                    for key in dic.copy():
-                        field_type = model_instance._meta.get_field(
-                            key).get_internal_type()
-                        # TODO make this more elegant
-                        if (
-                            field_type == 'ManyToManyField' or
-                            key not in self.dic and
-                            key != self.hashfield
-                        ):
-                            del dic[key]
-                    result.update(**dic)
-                    self.res['exists'] = True
-                    self.res['updated'] = True
-                else:
-                    self.res['exists'] = True
-                model_instance = result[0]
-
-            else:
+            count, qs = self._check_persistence(
+                model_instance, self.persistence)
+            try:
+                model_instance = [
+                    self.create_in_db, self.update_in_db][count](
+                        model_instance, qs)
+            except IndexError:
                 self.res['rejected'] = True
                 return model_instance
-
-            self.assign_related(model_instance, self.related_instances)
+            self._assign_related(model_instance, self.related_instances)
             return model_instance
 
 
 class InstanceGenerator(BaseInstanceGenerator):
-    """
-    Instance generator that can take of foreign key and many-to-many-
-    relationships.
-    """
+    """Instance generator that can take care of foreign key and many-to-many-
+    relationships as well as deal with other field attributes."""
+
+    def _prepare_field(self, field, value):
+        return value
+
+    def _prepare_fk(self, field, value):
+        return FkInstanceGenerator(field, value).get_instance()
+
+    def _prepare_m2m(self, field, value):
+        if isinstance(value, list):
+            # defer assignment of related instances until instance
+            # creation is finished
+            self.related_instances[field.name] = []
+            for entry in value:
+                generator = RelInstanceGenerator(field, entry)
+                self.related_instances[field.name].append(
+                    generator.get_instance())
+
+    def _prepare_date(self, field, value):
+        if not (field.auto_now or field.auto_now_add):
+            formfield = DateTimeField()
+            return formfield.clean(value)
+
+    def _prepare_text(self, field, value):
+        if not isinstance(value, (str, unicode)):
+            ret = unicode(value)
+        else:
+            ret = value
+        if hasattr(field, 'max_length'):
+            ret = ret[0:field.max_length]
+        return ret
+
+    preparations = {
+        'ForeignKey': _prepare_fk,
+        'ManyToManyField': _prepare_m2m,
+        'DateTimeField': _prepare_date,
+        'GeometryField': _prepare_field,
+        'CharField': _prepare_text,
+        'TextField': _prepare_text
+    }
 
     def prepare(self, dic):
         if isinstance(dic, self.model_class):
@@ -177,42 +215,10 @@ class InstanceGenerator(BaseInstanceGenerator):
                 continue
             field = model_instance._meta.get_field(fieldname)
             fieldtype = field.get_internal_type()
-            fieldvalue = None
-
-            if fieldtype == 'ForeignKey':
-                fieldvalue = FkInstanceGenerator(
-                    field, dic[fieldname]).get_instance()
-
-            elif fieldtype == 'ManyToManyField':
-                if isinstance(dic[fieldname], list):
-                    # defer assignment of related instances until instance
-                    # creation is finished
-                    self.related_instances[fieldname] = []
-                    for entry in dic[fieldname]:
-                        generator = RelInstanceGenerator(field, entry)
-                        self.related_instances[fieldname].append(
-                            generator.get_instance())
-
-            elif fieldtype == 'DateTimeField':
-                if not (field.auto_now or field.auto_now_add):
-                    validator = DateTimeField()
-                    fieldvalue = validator.clean(self.dic[fieldname])
-
-            elif fieldtype == 'GeometryField':
-                fieldvalue = dic[fieldname]
-
-            elif fieldtype == 'CharField' or fieldtype == 'TextField':
-                if dic.get(fieldname):
-                    if not isinstance(dic[fieldname], str):
-                        fieldvalue = unicode(dic[fieldname])
-                    else:
-                        fieldvalue = dic[fieldname]
-                    if hasattr(field, 'max_length'):
-                        fieldvalue = fieldvalue[0:field.max_length]
-                else:
-                    fieldvalue = ''
-
-            else:
+            try:
+                fieldvalue = self.preparations[fieldtype](
+                    self, field, dic[fieldname])
+            except KeyError:
                 fieldvalue = dic[fieldname]
             try:
                 setattr(model_instance, fieldname, fieldvalue)
