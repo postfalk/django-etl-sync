@@ -68,6 +68,40 @@ class FeedbackCounter(object):
                 self.rejected))
 
 
+class FileReaderLogManager():
+    """Context manager that creates the reader and handles files."""
+
+    def __init__(self, filename, logname=None, reader_class=None, encoding=None):
+        self.filename=filename
+        self.log=logname
+        self.reader=reader_class
+        self.encoding=encoding
+        self.file = None
+        self.logfile = None
+
+    def _log(self, text):
+        """Log to logfile or to stdout if self.logfile=None"""
+        print(text, file=self.logfile)
+
+    def __enter__(self):
+        self.file = open(self.filename, 'r')
+        self.logfile = open(self.log, 'w')
+        if self.reader:
+            reader = self.reader(self.file)
+        else:
+            reader = csv.DictReader(
+                self.file, delimiter='\t', quoting=csv.QUOTE_NONE)
+            reader.log = self._log
+        return reader
+
+    def __exit__(self, type, value, traceback):
+        for filehandle in [self.file, self.logfile]:
+            try:
+                filehandle.close()
+            except (AttributeError, IOError):
+                pass
+
+
 class Mapper(object):
     """Generic mapper object for ETL. Create reader_class for file formats others
     than tab-delimited CSV."""
@@ -153,21 +187,17 @@ class Mapper(object):
     def load(self):
         """Loads data into database using Django models and error logging."""
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-        with open(
-            self.filename, 'r') as sourcefile, open(
-                self.logfilename, 'w') as self.logfile:
-            self._log(
+        with FileReaderLogManager(self.filename,
+                                  logname=self.logfilename,
+                                  reader_class=self.reader_class,
+                                  encoding=self.encoding) as reader:
+            reader.log(
                 'Data extraction started {0}\n\nStart line: '
                 '{1}\nEnd line: {2}\n'.format(
                     datetime.now().strftime(
                         '%Y-%m-%d'), self.slice_begin, self.slice_end))
             counter = FeedbackCounter(
                 feedbacksize=self.feedbacksize, message=self.message)
-            if self.reader_class:
-                reader = self.reader_class(sourcefile)
-            else:
-                reader = csv.DictReader(
-                    sourcefile, delimiter='\t', quoting=csv.QUOTE_NONE)
             while self.slice_begin and self.slice_begin > counter.counter:
                 reader.next()
                 counter.increment()
@@ -175,23 +205,24 @@ class Mapper(object):
                 try:
                     csv_dic = reader.next()
                 except (UnicodeDecodeError, csv.Error):
-                    self._log(
+                    reader.log(
                         'Text decoding or CSV error in line {0} '
                         '=> rejected'.format(counter.counter))
                     counter.reject()
                     continue
                 except StopIteration:
+                    reader.log('End of file.')
                     break
                 try:
                     dic = self.full_transform(csv_dic)
                 except ValidationError, e:
-                    self._log('Validation error in line {0}: {1} '
+                    reader.log('Validation error in line {0}: {1} '
                              '=> rejected'.format(counter.counter, str(e)))
                     counter.reject()
                     continue
                 # remove keywords conflicting with Django model
                 # TODO: I think that is done in several places now
-                # determine the one correct one and get rid of the others
+                # determine the correct one and get rid of the others
                 if 'id' in dic:
                     del dic['id']
                 generator = InstanceGenerator(
@@ -200,11 +231,11 @@ class Mapper(object):
                 try:
                     generator.get_instance()
                 except (ValidationError, IntegrityError, DatabaseError), e:
-                    self._log('Error in line {0}: {1} => rejected'.format(
+                    reader.log('Error in line {0}: {1} => rejected'.format(
                         counter.counter, str(e)))
                     counter.reject()
                     continue
                 else:
                     counter.use_result(generator.res)
-            self._log(counter.finished())
+            reader.log(counter.finished())
         self.result = 'loaded'

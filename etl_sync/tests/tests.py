@@ -1,9 +1,11 @@
 import os
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from etl_sync.tests.models import (ElNumero, HashTestModel, Nombre,
-                                   Polish, TestModel, TestModelWoFk)
-from etl_sync.generators import BaseInstanceGenerator, InstanceGenerator
+from etl_sync.tests.models import (
+    ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
+    Numero)
+from etl_sync.generators import (
+    BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.readers import unicode_dic
 
@@ -52,23 +54,29 @@ class TestModule(TestCase):
         ins = Nombre(name='un')
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': ins,
-                'numero': 'uno'},
+             'numero': 'uno'},
             {'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
-                'numero': 'due'},
-            {'record': '3', 'name': 'three', 'zahl': 'drei',
-                'nombre': {'name': 'troix'}, 'numero': 'tre'},
+             'numero': 'due'},
+            {'record': '3', 'name': 'three', 'zahl': 'drei', 'nombre':
+             {'name': 'troix'}, 'numero': 'tre'},
             {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
-                'numero': 'quattro'},
+             'numero': 'quattro'},
             {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
-                'nombre': 'quatre', 'numero': 'cinque'}
+             'nombre': 'quatre', 'numero': 'cinque'},
+            {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
+             'numero': 'test'},
+            {'record': '5', 'name': 'six', 'zahl': 'sechs', 'numero': 2},
+            {'record': '6', 'name': 'six', 'zahl': 'sechs', 'numero': '45',
+             'nombre': '2'},
+            {'record': '7', 'name': 'test', 'numero': '1'}
         ]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
             generator.get_instance()
         res = Nombre.objects.all()
-        self.assertEqual(res.count(), 4)
+        self.assertEqual(res.count(), 5)
         res = TestModel.objects.all()
-        self.assertEqual(res.count(), 3)
+        self.assertEqual(res.count(), 7)
         self.assertEqual(res.filter(record='1')[0].nombre.name, 'quatre')
         res.delete()
 
@@ -109,7 +117,7 @@ class TestModule(TestCase):
             {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
                 'numero': 'quattro', 'elnumero': 'el tres'},
             {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
-                'nombre': 'quatre', 'numero': 'cinque'}
+                'nombre': 'quatre', 'numero': 'cinque'},
         ]
         for dic in dics:
             generator = InstanceGenerator(TestModel, dic, persistence='record')
@@ -314,3 +322,9 @@ class TestFeedbackCounter(TestCase):
         self.assertEqual(counter.counter, 5)
         self.assertEqual(counter.updated, 1)
         self.assertEqual(counter.created, 1)
+
+
+class TestFunctions(TestCase):
+
+    def test_get_umabigous_field(self):
+        self.assertEqual(get_unambigous_field(Numero), 'name')

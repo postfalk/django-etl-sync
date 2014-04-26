@@ -16,6 +16,32 @@ def get_unique_fields(model_class):
     return ret
 
 
+def get_unambigous_field(model_class):
+        """Checks whether there is a way to match a string to a
+        field in ForeignKey model. Use 'name' as default."""
+        ct_char = 0
+        ct_uniquechar = 0
+        for f in model_class._meta.fields:
+            test = (f.get_internal_type() == 'CharField')
+            if test and ct_char < 2:
+                if f.name == 'name':
+                    return 'name'
+                ct_char += 1
+                charfield = f.name
+            if f.unique and test:
+                if ct_uniquechar < 2:
+                    ct_uniquechar += 1
+                    uniquecharfield = f.name
+                else:
+                    break
+        if ct_char == 1:
+            return charfield
+        if ct_uniquechar == 1:
+            return uniquecharfield
+        raise ValidationError(
+            'Fk field cannot be assigned for {}'.format(model_class))
+
+
 class BaseInstanceGenerator(object):
     """Generates, evaluates, and saves instances from dictionary
     or object."""
@@ -60,6 +86,16 @@ class BaseInstanceGenerator(object):
         ret = md5(out.encode('utf-8')).hexdigest()
         return ret
 
+    def _check_hash(self, instance, field):
+        count = 0
+        if hasattr(instance, field):
+            value = self.hash_instance(instance)
+            qs = self.model_class.objects.filter(
+                **{field: value})
+            setattr(instance, field, value)
+            count = qs.count()
+        return count, instance
+
     def _get_persistence_query(self, model_instance, persistence):
         """Get query to determine whether record already exists
         depending on persistence definition."""
@@ -75,8 +111,9 @@ class BaseInstanceGenerator(object):
         return self.model_class.objects.filter(query)
 
     def _check_persistence(self, instance, persistence):
-        """Returns a number of how many records fulfill the
-        persistence criterion."""
+        """Returns the number of records that fulfill the
+        persistence criterion and the queryset resulting from
+        the application of the persistence criterion."""
         if not persistence:
             unique_fields = get_unique_fields(instance)
             if unique_fields:
@@ -87,7 +124,9 @@ class BaseInstanceGenerator(object):
         return qs.count(), qs
 
     def _assign_related(self, instance, rel_inst_dic):
-        """Assign related instances after saving."""
+        """Assign related instances after saving the parent
+        record. The instances should be fully prepared and
+        clean at this point."""
         for key, item in rel_inst_dic.iteritems():
             try:
                 getattr(instance, key).add(*item)
@@ -100,7 +139,7 @@ class BaseInstanceGenerator(object):
             instance.clean_fields()
             instance.save()
             self.res['created'] = True
-            return instance
+        return instance
         # TODO: work on error handling
         # else:
         #    raise ValidationError(
@@ -127,8 +166,9 @@ class BaseInstanceGenerator(object):
         return persistence_qs[0]
 
     def prepare(self, dic):
-        """Basic dic to model conversion works only for models without relational
-        field type. Subclass for more complicated preparations."""
+        """Basic dictionary to model conversion. Works only for models
+        without relational field types. Subclass and extend method for
+        more complicated preparations."""
         return self.model_class(**dic)
 
     def get_instance(self):
@@ -140,24 +180,22 @@ class BaseInstanceGenerator(object):
             if model_instance.pk:
                 self.res['exists'] = True
                 return model_instance
-            if hasattr(model_instance, self.hashfield):
-                hashvalue = self.hash_instance(model_instance)
-                res = self.model_class.objects.filter(
-                    **{self.hashfield: hashvalue})
-                if res.count() != 0:
-                    self.res['exists'] = True
-                    self._assign_related(res[0], self.related_instances)
-                    return res[0]
-                setattr(model_instance, self.hashfield, hashvalue)
-            count, qs = self._check_persistence(
-                model_instance, self.persistence)
-            try:
-                model_instance = [
-                    self.create_in_db, self.update_in_db][count](
-                        model_instance, qs)
-            except IndexError:
-                self.res['rejected'] = True
-                return model_instance
+            count, model_instance = self._check_hash(
+                model_instance, self.hashfield)
+            if count != 0:
+                self.res['exists'] = True
+            else:
+                count, qs = self._check_persistence(
+                    model_instance, self.persistence)
+                try:
+                    model_instance = [
+                        self.create_in_db, self.update_in_db][count](
+                            model_instance, qs)
+                except IndexError:
+                    # TODO: Arriving in this branch means that more than one
+                    # record fulfill the persistence criterion defined.
+                    # Add error handling.
+                    return model_instance
             self._assign_related(model_instance, self.related_instances)
             return model_instance
 
@@ -179,8 +217,8 @@ class InstanceGenerator(BaseInstanceGenerator):
             self.related_instances[field.name] = []
             for entry in value:
                 generator = RelInstanceGenerator(field, entry)
-                self.related_instances[field.name].append(
-                    generator.get_instance())
+                instance = generator.get_instance()
+                self.related_instances[field.name].append(instance)
 
     def _prepare_date(self, field, value):
         if not (field.auto_now or field.auto_now_add):
@@ -228,9 +266,7 @@ class InstanceGenerator(BaseInstanceGenerator):
 
 
 class RelInstanceGenerator(InstanceGenerator):
-    """
-    This class prepares related records in M2M relationships.
-    """
+    """Prepares related instances in M2M relationships."""
 
     def __init__(self, field, dic, **kwargs):
         super(RelInstanceGenerator, self).__init__(None, dic, **kwargs)
@@ -238,10 +274,9 @@ class RelInstanceGenerator(InstanceGenerator):
 
 
 class FkInstanceGenerator(RelInstanceGenerator):
-    """
-    This class makes special preparations for saving ForeignKey records while
-    preparing records for saving.
-    """
+    """Prepares ForeignKey instances. Order of tests:
+    1. Instance, 2. Dictionary, 3. Integer,
+    4. Unique name or single field"""
 
     def __init__(self, field, dic, **kwargs):
         super(FkInstanceGenerator, self).__init__(field, dic, **kwargs)
@@ -252,23 +287,24 @@ class FkInstanceGenerator(RelInstanceGenerator):
     def prepare(self, value):
         if not value:
             return None
-        related_field_class = self.related_field
         if isinstance(value, self.model_class):
-            ret = value
+            return value
         else:
             if isinstance(value, dict):
+                key = get_unambigous_field(self.model_class)
                 fk_dic = value
-                if 'name' in fk_dic and related_field_class == 'id':
-                    self.persistence = ['name']
+                if key in fk_dic and self.related_field == 'id':
+                    self.persistence = [key]
             elif isinstance(value, int):
-                fk_dic = {related_field_class: value}
-                self.persistence = [related_field_class]
+                fk_dic = {self.related_field: value}
+                self.persistence = [self.related_field]
             else:
-                if related_field_class == 'id':
-                    fk_dic = {'name': value}
-                    self.persistence = ['name']
+                key = get_unambigous_field(self.model_class)
+                if self.related_field == 'id':
+                    fk_dic = {key: value}
+                    self.persistence = [key]
                 else:
-                    fk_dic = {related_field_class: value}
-                    self.persistence = [related_field_class]
+                    fk_dic = {self.related_field: value}
+                    self.persistence = [self.related_field]
             ret = super(FkInstanceGenerator, self).prepare(fk_dic)
         return ret
