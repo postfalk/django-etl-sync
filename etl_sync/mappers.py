@@ -178,8 +178,9 @@ class Mapper(object):
 
     def full_transform(self, dic):
         """Runs all four transformation steps."""
-        dic = self._apply_defaults(dic)
+        # Order is important here
         dic = self.remap(dic)
+        dic = self._apply_defaults(dic)
         dic = self._process_forms(dic)
         dic = self.transform(dic)
         self.validate(dic)
