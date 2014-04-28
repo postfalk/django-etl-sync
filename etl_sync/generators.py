@@ -88,13 +88,14 @@ class BaseInstanceGenerator(object):
 
     def _check_hash(self, instance, field):
         count = 0
+        qs = []
         if hasattr(instance, field):
             value = self.hash_instance(instance)
             qs = self.model_class.objects.filter(
                 **{field: value})
             setattr(instance, field, value)
             count = qs.count()
-        return count, instance
+        return count, qs
 
     def _get_persistence_query(self, model_instance, persistence):
         """Get query to determine whether record already exists
@@ -127,11 +128,8 @@ class BaseInstanceGenerator(object):
         """Assign related instances after saving the parent
         record. The instances should be fully prepared and
         clean at this point."""
-        for key, item in rel_inst_dic.iteritems():
-            try:
-                getattr(instance, key).add(*item)
-            except ValueError:
-                pass
+        for key, lst in rel_inst_dic.iteritems():
+            getattr(instance, key).add(*lst)
 
     def create_in_db(self, instance, persistence_qs):
         """Creates entry in DB."""
@@ -158,6 +156,9 @@ class BaseInstanceGenerator(object):
                     key != self.hashfield
                 ):
                     del dic[key]
+            # see whether that suits us here, check whether M2M field
+            # updates work as well (as they should since they are treated
+            # seperately)
             persistence_qs.update(**dic)
             self.res['exists'] = True
             self.res['updated'] = True
@@ -180,10 +181,11 @@ class BaseInstanceGenerator(object):
             if model_instance.pk:
                 self.res['exists'] = True
                 return model_instance
-            count, model_instance = self._check_hash(
+            count, qs = self._check_hash(
                 model_instance, self.hashfield)
             if count != 0:
                 self.res['exists'] = True
+                return qs[0]
             else:
                 count, qs = self._check_persistence(
                     model_instance, self.persistence)
@@ -195,6 +197,7 @@ class BaseInstanceGenerator(object):
                     # TODO: Arriving in this branch means that more than one
                     # record fulfill the persistence criterion defined.
                     # Add error handling.
+                    print('{}: here'.format(__file__))
                     return model_instance
             self._assign_related(model_instance, self.related_instances)
             return model_instance

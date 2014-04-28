@@ -54,7 +54,7 @@ class FeedbackCounter(object):
         """Uses feedback from InstanceGenerator to set counters."""
         if res.get('created'):
             self.create()
-        elif res.get('update'):
+        elif res.get('updated'):
             self.update()
         else:
             self.increment()
