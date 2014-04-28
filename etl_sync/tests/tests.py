@@ -8,6 +8,7 @@ from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.readers import unicode_dic
+from etl_sync.transformations import Transformer
 
 
 class TestModule(TestCase):
@@ -328,3 +329,17 @@ class TestFunctions(TestCase):
 
     def test_get_umabigous_field(self):
         self.assertEqual(get_unambigous_field(Numero), 'name')
+
+
+class TestTransformer(TestCase):
+
+    def helper(self, transformer):
+        transformer.cleaned_data
+
+    def test_base_transformer(self):
+        dic = {'test1': 'testus', 'test2': 'testus testus'}
+        transformer = Transformer(dic)
+        self.assertRaises(AttributeError, self.helper, transformer)
+        self.assertTrue(transformer.is_valid())
+        self.assertEqual(transformer.cleaned_data['test1'], 'testus')
+        self.assertEqual(transformer.cleaned_data['test2'], 'testus testus')
