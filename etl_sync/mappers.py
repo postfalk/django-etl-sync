@@ -71,11 +71,12 @@ class FeedbackCounter(object):
 class FileReaderLogManager():
     """Context manager that creates the reader and handles files."""
 
-    def __init__(self, filename, logname=None, reader_class=None, encoding=None):
-        self.filename=filename
-        self.log=logname
-        self.reader=reader_class
-        self.encoding=encoding
+    def __init__(self, filename, logname=None,
+                 reader_class=None, encoding=None):
+        self.filename = filename
+        self.log = logname
+        self.reader = reader_class
+        self.encoding = encoding
         self.file = None
         self.logfile = None
 
@@ -179,8 +180,8 @@ class Mapper(object):
         """Runs all four transformation steps."""
         dic = self._apply_defaults(dic)
         dic = self.remap(dic)
-        dic = self.transform(dic)
         dic = self._process_forms(dic)
+        dic = self.transform(dic)
         self.validate(dic)
         return dic
 
@@ -216,8 +217,9 @@ class Mapper(object):
                 try:
                     dic = self.full_transform(csv_dic)
                 except ValidationError, e:
-                    reader.log('Validation error in line {0}: {1} '
-                             '=> rejected'.format(counter.counter, str(e)))
+                    reader.log(
+                        'Validation error in line {0}: {1} '
+                        '=> rejected'.format(counter.counter, str(e)))
                     counter.reject()
                     continue
                 # remove keywords conflicting with Django model
