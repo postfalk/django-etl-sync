@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, DatabaseError
 from django.conf import settings
 from etl_sync.generators import InstanceGenerator
+from etl_sync.transformations import Transformer
 
 
 class FeedbackCounter(object):
@@ -107,12 +108,13 @@ class Mapper(object):
     """Generic mapper object for ETL. Create reader_class for file formats others
     than tab-delimited CSV."""
     reader_class = None
+    transformer_class = Transformer
     model_class = None
     filename = None
     encoding = 'utf-8'
     slice_begin = None
     slice_end = None
-    default_values = {}
+    defaults = {}
     create_new = True
     update = True
     create_foreign_key = True
@@ -144,48 +146,6 @@ class Mapper(object):
         """Log to logfile or to stdout if self.logfile=None"""
         print(text, file=self.logfile)
 
-    def _process_forms(self, dic):
-        """Processes a list of forms."""
-        for form in self.forms:
-            frm = form(dic)
-            if frm.is_valid():
-                dic.update(frm.cleaned_data)
-            else:
-                for error in frm.errors['__all__']:
-                    raise ValidationError(error)
-        return dic
-
-    def _apply_defaults(self, dictionary):
-        """Adds defaults to the dictionary."""
-        if type(self.default_values) is dict:
-            dic = self.default_values.copy()
-        else:
-            dic = {}
-        dic = dict(dic.items() + dictionary.items())
-        return dic
-
-    def validate(self, dic):
-        """Raise ValidationError here."""
-        pass
-
-    def remap(self, dic):
-        """Use this method for remapping dictionary keys."""
-        return dic
-
-    def transform(self, dic):
-        """Additional transformations not covered by remap and forms."""
-        return dic
-
-    def full_transform(self, dic):
-        """Runs all four transformation steps."""
-        # Order is important here
-        dic = self.remap(dic)
-        dic = self._apply_defaults(dic)
-        dic = self._process_forms(dic)
-        dic = self.transform(dic)
-        self.validate(dic)
-        return dic
-
     def load(self):
         """Loads data into database using Django models and error logging."""
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
@@ -215,12 +175,14 @@ class Mapper(object):
                 except StopIteration:
                     reader.log('End of file.')
                     break
-                try:
-                    dic = self.full_transform(csv_dic)
-                except ValidationError, e:
+                transformer = self.transformer_class(csv_dic, self.defaults)
+                if transformer.is_valid():
+                    dic = transformer.cleaned_data
+                else:
                     reader.log(
                         'Validation error in line {0}: {1} '
-                        '=> rejected'.format(counter.counter, str(e)))
+                        '=> rejected'.format(
+                            counter.counter, transformer.errors))
                     counter.reject()
                     continue
                 # remove keywords conflicting with Django model
