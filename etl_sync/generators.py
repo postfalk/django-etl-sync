@@ -95,7 +95,7 @@ class BaseInstanceGenerator(object):
                 **{field: value})
             setattr(instance, field, value)
             count = qs.count()
-        return count, qs
+        return count, qs or []
 
     def _get_persistence_query(self, model_instance, persistence):
         """Get query to determine whether record already exists
@@ -124,12 +124,28 @@ class BaseInstanceGenerator(object):
         qs = self._get_persistence_query(instance, persistence)
         return qs.count(), qs
 
-    def _assign_related(self, instance, rel_inst_dic):
+    def _assign_related(self, instance, rel_inst_dic, dic={}):
         """Assign related instances after saving the parent
         record. The instances should be fully prepared and
-        clean at this point."""
+        clean at this point. Use the original dic to fill
+        in intermediate relationship."""
         for key, lst in rel_inst_dic.iteritems():
-            getattr(instance, key).add(*lst)
+            field = getattr(instance, key)
+            try:
+                field.add(*lst)
+            except AttributeError:
+                # Deal with M2M fields with through model here.
+                # Explicitly generate connecting relationship
+                for i, item in enumerate(lst):
+                    newdic = dic[key][i].copy()
+                    newdic.update({
+                        field.source_field_name: instance,
+                        field.target_field_name: item})
+                    generator = InstanceGenerator(
+                        field.through, newdic, persistence=[
+                            field.source_field_name, field.target_field_name],
+                        create_foreign_key=False)
+                    generator.get_instance()
 
     def create_in_db(self, instance, persistence_qs):
         """Creates entry in DB."""
@@ -199,7 +215,8 @@ class BaseInstanceGenerator(object):
                     # Add error handling.
                     print('{}: here'.format(__file__))
                     return model_instance
-            self._assign_related(model_instance, self.related_instances)
+            self._assign_related(
+                model_instance, self.related_instances, self.dic)
             return model_instance
 
 
@@ -214,14 +231,15 @@ class InstanceGenerator(BaseInstanceGenerator):
         return FkInstanceGenerator(field, value).get_instance()
 
     def _prepare_m2m(self, field, value):
-        if isinstance(value, list):
-            # defer assignment of related instances until instance
-            # creation is finished
-            self.related_instances[field.name] = []
-            for entry in value:
-                generator = RelInstanceGenerator(field, entry)
-                instance = generator.get_instance()
-                self.related_instances[field.name].append(instance)
+        # defer assignment of related instances until instance
+        # creation is finished
+        if not isinstance(value, list):
+            value = [value]
+        self.related_instances[field.name] = []
+        for entry in value:
+            generator = RelInstanceGenerator(field, entry)
+            instance = generator.get_instance()
+            self.related_instances[field.name].append(instance)
 
     def _prepare_date(self, field, value):
         if not (field.auto_now or field.auto_now_add):
@@ -237,13 +255,21 @@ class InstanceGenerator(BaseInstanceGenerator):
             ret = ret[0:field.max_length]
         return ret
 
+    def _prepare_integer(self, field, value):
+        return int(value)
+
+    def _prepare_float(self, field, value):
+        return float(value)
+
     preparations = {
         'ForeignKey': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
         'DateTimeField': _prepare_date,
         'GeometryField': _prepare_field,
         'CharField': _prepare_text,
-        'TextField': _prepare_text
+        'TextField': _prepare_text,
+        'IntegerField': _prepare_integer,
+        'FloatField': _prepare_float
     }
 
     def prepare(self, dic):
@@ -263,6 +289,8 @@ class InstanceGenerator(BaseInstanceGenerator):
                 fieldvalue = dic[fieldname]
             try:
                 setattr(model_instance, fieldname, fieldvalue)
+            except AttributeError:
+                pass
             except ValueError:
                 pass
         return model_instance

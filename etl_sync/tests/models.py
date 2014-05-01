@@ -53,8 +53,8 @@ class TestModel(models.Model):
     zahl = models.CharField(max_length=10, null=True, blank=True)
     nombre = models.ForeignKey(Nombre, null=True, blank=True)
     numero = models.ForeignKey(Numero)
-    elnumero = models.ForeignKey(ElNumero, to_field='rec', null=True,
-        blank=True)
+    elnumero = models.ForeignKey(
+        ElNumero, to_field='rec', null=True, blank=True)
     related = models.ManyToManyField(Polish, null=True, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 
@@ -65,3 +65,21 @@ class HashTestModel(models.Model):
     zahl = models.CharField(max_length=10, null=True, blank=True)
     related = models.ManyToManyField(Polish, null=True)
     md5 = models.CharField(max_length=32, null=True)
+
+
+class AnotherModel(models.Model):
+    record = models.CharField(max_length=10, unique=True)
+    last_name = models.CharField(max_length=10, blank=True)
+
+
+class SomeModel(models.Model):
+    record = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=10, blank=True)
+    lnames = models.ManyToManyField(
+        AnotherModel, through='IntermediateModel')
+
+
+class IntermediateModel(models.Model):
+    somemodel = models.ForeignKey(SomeModel)
+    anothermodel = models.ForeignKey(AnotherModel)
+    attribute = models.CharField(max_length=10, blank=True)

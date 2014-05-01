@@ -53,11 +53,11 @@ class Transformer(object):
         dic = self._process_forms(dic)
         dic = self.transform(dic)
         self.validate(dic)
+        # print(dic)
         return dic
 
     def clean(self, dic):
-        """For compatibility with Django's form class.
-        TODO: consolidate."""
+        """For compatibility with Django's form class."""
         return self.full_transform(dic)
 
     def is_valid(self):

@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from etl_sync.tests.models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
-    Numero)
+    Numero, SomeModel, AnotherModel, IntermediateModel)
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
@@ -343,3 +343,28 @@ class TestTransformer(TestCase):
         self.assertTrue(transformer.is_valid())
         self.assertEqual(transformer.cleaned_data['test1'], 'testus')
         self.assertEqual(transformer.cleaned_data['test2'], 'testus testus')
+
+
+class TestM2MWithThrough(TestCase):
+
+    def test_through(self):
+        """Test M2M with through model."""
+        dic = {'record': '1', 'name': 'John', 'lnames': [
+              {'record': '1:1', 'last_name': 'Doe',
+               'attribute': 'generic'},
+              {'record': '1:2', 'last_name': 'Carvello',
+               'attribute': 'more_fancy'}
+        ]}
+        generator = InstanceGenerator(SomeModel, dic, persistence='record')
+        generator.get_instance()
+        qs = SomeModel.objects.all()
+        self.assertEqual(qs[0].record, '1')
+        self.assertEqual(qs[0].name, 'John')
+        self.assertEqual(qs[0].lnames.all()[0].last_name, 'Doe')
+        qs = AnotherModel.objects.all()
+        self.assertEqual(qs.count(), 2)
+        self.assertEqual(qs[0].record, '1:1')
+        self.assertEqual(qs[1].record, '1:2')
+        qs = IntermediateModel.objects.all()
+        self.assertEqual(qs[0].attribute, 'generic')
+        self.assertEqual(qs[1].attribute, 'more_fancy')
