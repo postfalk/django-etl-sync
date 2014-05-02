@@ -93,7 +93,7 @@ class FileReaderLogManager():
         else:
             reader = csv.DictReader(
                 self.file, delimiter='\t', quoting=csv.QUOTE_NONE)
-            reader.log = self._log
+        reader.log = self._log
         return reader
 
     def __exit__(self, type, value, traceback):
