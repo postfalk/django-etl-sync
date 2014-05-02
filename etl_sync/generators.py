@@ -255,12 +255,6 @@ class InstanceGenerator(BaseInstanceGenerator):
             ret = ret[0:field.max_length]
         return ret
 
-    def _prepare_integer(self, field, value):
-        return int(value)
-
-    def _prepare_float(self, field, value):
-        return float(value)
-
     preparations = {
         'ForeignKey': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
@@ -268,8 +262,6 @@ class InstanceGenerator(BaseInstanceGenerator):
         'GeometryField': _prepare_field,
         'CharField': _prepare_text,
         'TextField': _prepare_text,
-        'IntegerField': _prepare_integer,
-        'FloatField': _prepare_float
     }
 
     def prepare(self, dic):
