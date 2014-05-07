@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 class Transformer(object):
     """Base transformer."""
     forms = []
-    errors = []
+    error = None
 
     def __init__(self, dic, defaults={}):
         self.dic = dic
@@ -65,5 +65,5 @@ class Transformer(object):
             self.cleaned_data = self.clean(self.dic)
             return True
         except (ValidationError, UnicodeEncodeError), e:
-            self.errors.append(e)
+            self.error = e
             return False

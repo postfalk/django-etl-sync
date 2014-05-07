@@ -95,7 +95,7 @@ class BaseInstanceGenerator(object):
                 **{field: value})
             setattr(instance, field, value)
             count = qs.count()
-        return count, qs or []
+        return count, qs
 
     def _get_persistence_query(self, model_instance, persistence):
         """Get query to determine whether record already exists
@@ -146,6 +146,10 @@ class BaseInstanceGenerator(object):
                             field.source_field_name, field.target_field_name],
                         create_foreign_key=False)
                     generator.get_instance()
+            except ValueError:
+                print('issue with assignment of related instances')
+                # TODO: explore while lst can be None
+                pass
 
     def create_in_db(self, instance, persistence_qs):
         """Creates entry in DB."""
@@ -213,7 +217,10 @@ class BaseInstanceGenerator(object):
                     # TODO: Arriving in this branch means that more than one
                     # record fulfill the persistence criterion defined.
                     # Add error handling.
-                    print('{}: here'.format(__file__))
+                    string = ''
+                    for key in self.persistence:
+                        string = string + ', ' + key
+                    print('Double entry found for {}'.format(string))
                     return model_instance
             self._assign_related(
                 model_instance, self.related_instances, self.dic)

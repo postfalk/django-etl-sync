@@ -368,3 +368,24 @@ class TestM2MWithThrough(TestCase):
         qs = IntermediateModel.objects.all()
         self.assertEqual(qs[0].attribute, 'generic')
         self.assertEqual(qs[1].attribute, 'more_fancy')
+
+
+class TestUpdate(TestCase):
+
+    def test_update(self):
+        """Test Update of records."""
+        dic = {'record': '100', 'numero': 'cento', 'zahl': 'hundert'}
+        generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+        res = generator.get_instance()
+        self.assertEqual(res.numero.name, 'cento')
+        self.assertEqual(generator.res['created'], True)
+        self.assertEqual(generator.res['updated'], False)
+        generator.get_instance()
+        self.assertEqual(generator.res['created'], False)
+        self.assertEqual(generator.res['updated'], False)
+        self.assertEqual(generator.res['exists'], True)
+        dic = {'record': '100', 'numero': 'hundert', 'zahl': 'hundert'}
+        generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+        res = generator.get_instance()
+        self.assertEqual(generator.res['updated'], True)
+        self.assertEqual(res.numero.name, 'hundert')

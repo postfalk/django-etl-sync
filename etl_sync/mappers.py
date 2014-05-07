@@ -182,7 +182,7 @@ class Mapper(object):
                     reader.log(
                         'Validation error in line {0}: {1} '
                         '=> rejected'.format(
-                            counter.counter, transformer.errors))
+                            counter.counter, transformer.error))
                     counter.reject()
                     continue
                 # remove keywords conflicting with Django model
