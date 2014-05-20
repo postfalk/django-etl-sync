@@ -378,14 +378,42 @@ class TestUpdate(TestCase):
         generator = InstanceGenerator(HashTestModel, dic, persistence='record')
         res = generator.get_instance()
         self.assertEqual(res.numero.name, 'cento')
-        self.assertEqual(generator.res['created'], True)
-        self.assertEqual(generator.res['updated'], False)
+        self.assertTrue(generator.res['created'])
+        self.assertFalse(generator.res['updated'])
         generator.get_instance()
-        self.assertEqual(generator.res['created'], False)
-        self.assertEqual(generator.res['updated'], False)
-        self.assertEqual(generator.res['exists'], True)
+        self.assertFalse(generator.res['created'])
+        self.assertFalse(generator.res['updated'])
+        self.assertTrue(generator.res['exists'])
         dic = {'record': '100', 'numero': 'hundert', 'zahl': 'hundert'}
         generator = InstanceGenerator(HashTestModel, dic, persistence='record')
         res = generator.get_instance()
-        self.assertEqual(generator.res['updated'], True)
+        self.assertTrue(generator.res['updated'])
         self.assertEqual(res.numero.name, 'hundert')
+        dic = {'record': '101', 'name': 'test', 'zahl': 'vier'}
+        generator = InstanceGenerator(
+            TestModelWoFk, dic, persistence='record')
+        res = generator.get_instance()
+        res = generator.get_instance()
+        self.assertTrue(generator.res['updated'])
+
+    def test_related_update(self):
+        """Test update of related records if parent record is
+        unchanged."""
+        dic = {'record': '1', 'name': 'John', 'lnames': [
+              {'record': '1:1', 'last_name': 'Doe',
+               'attribute': 'generic'},
+              {'record': '1:2', 'last_name': 'Carvello',
+               'attribute': 'more_fancy'}
+        ]}
+        generator = InstanceGenerator(SomeModel, dic, persistence='record')
+        generator.get_instance()
+        dic = {'record': '1', 'name': 'John', 'lnames': [
+              {'record': '1:1', 'last_name': 'Deer',
+               'attribute': 'generic'},
+              {'record': '1:2', 'last_name': 'Carvello',
+               'attribute': 'more_fancy'}
+        ]}
+        generator = InstanceGenerator(SomeModel, dic, persistence='record')
+        generator.get_instance()
+        qs = SomeModel.objects.all()
+        self.assertEqual(qs[0].lnames.all()[0].last_name, 'Deer')
