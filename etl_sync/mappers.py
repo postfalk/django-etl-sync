@@ -52,10 +52,10 @@ class FeedbackCounter(object):
         self.updated += 1
 
     def use_result(self, res):
-        """Uses feedback from InstanceGenerator to set counters."""
+        """Use feedback from InstanceGenerator to set counters."""
         if res.get('created'):
             self.create()
-        elif res.get('update'):
+        elif res.get('updated'):
             self.update()
         else:
             self.increment()

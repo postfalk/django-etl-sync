@@ -373,7 +373,9 @@ class TestM2MWithThrough(TestCase):
 class TestUpdate(TestCase):
 
     def test_update(self):
-        """Test Update of records."""
+        """
+        Test record update.
+        """
         dic = {'record': '100', 'numero': 'cento', 'zahl': 'hundert'}
         generator = InstanceGenerator(HashTestModel, dic, persistence='record')
         res = generator.get_instance()
@@ -397,8 +399,10 @@ class TestUpdate(TestCase):
         self.assertTrue(generator.res['updated'])
 
     def test_related_update(self):
-        """Test update of related records if parent record is
-        unchanged."""
+        """
+        Test update of related records if parent record is
+        unchanged.
+        """
         dic = {'record': '1', 'name': 'John', 'lnames': [
               {'record': '1:1', 'last_name': 'Doe',
                'attribute': 'generic'},
