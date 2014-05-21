@@ -262,6 +262,21 @@ class InstanceGenerator(BaseInstanceGenerator):
             ret = ret[0:field.max_length]
         return ret
 
+    def _prepare_boolean(self, field, value):
+        if value:
+            try:
+                value = value.lower()
+            except AttributeError:
+                pass
+            if (
+                value == 0 or value == '0' or
+                value == 'false' or value == 'f'
+            ):
+                return False
+            else:
+                return True
+        return False
+
     preparations = {
         'ForeignKey': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
@@ -269,6 +284,7 @@ class InstanceGenerator(BaseInstanceGenerator):
         'GeometryField': _prepare_field,
         'CharField': _prepare_text,
         'TextField': _prepare_text,
+        'BooleanField': _prepare_boolean
     }
 
     def prepare(self, dic):

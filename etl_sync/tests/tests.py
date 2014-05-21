@@ -421,3 +421,15 @@ class TestUpdate(TestCase):
         generator.get_instance()
         qs = SomeModel.objects.all()
         self.assertEqual(qs[0].lnames.all()[0].last_name, 'Deer')
+
+
+class TestPreparations(TestCase):
+
+    def test_prepare_boolean(self):
+        generator = InstanceGenerator(SomeModel, {})
+        tests = [
+            ('0', False), ('1', True), ('false', False), ('true', True),
+            ('f', False), ('t', True), (1, True), (0, False)]
+        for test in tests:
+            self.assertEqual(
+                generator._prepare_boolean(None, test[0]), test[1])
