@@ -344,6 +344,19 @@ class TestTransformer(TestCase):
         self.assertEqual(transformer.cleaned_data['test1'], 'testus')
         self.assertEqual(transformer.cleaned_data['test2'], 'testus testus')
 
+    def test_remap(self):
+        dic = {
+            'TEST': 'test', 'another_field': 'content', 'third_field': 'text'}
+        Transformer.mappings = {'TEST': 'test', 'another_field': 'field'}
+        transformer = Transformer(dic)
+        self.assertTrue(transformer.is_valid())
+        res = transformer.cleaned_data
+        self.assertEqual(res['test'], 'test')
+        self.assertEqual(res['field'], 'content')
+        self.assertEqual(res['third_field'], 'text')
+        self.assertNotIn('TEST', res)
+        self.assertNotIn('another_field', res)
+
 
 class TestM2MWithThrough(TestCase):
 
