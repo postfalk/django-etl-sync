@@ -78,7 +78,7 @@ class BaseInstanceGenerator(object):
             if field.name not in [self.hashfield, u'id', u'last_modified']:
                 try:
                     value = unicode(getattr(instance, field.name))
-                except TypeError:
+                except (TypeError, Exception):
                     pass
                 else:
                     if value:
@@ -193,8 +193,8 @@ class BaseInstanceGenerator(object):
         return self.model_class(**dic)
 
     def get_instance(self):
-        """Create or get instance and add it to the database and create
-        relationships."""
+        """Create or get instance, add it to the database,
+        and create relationships."""
         model_instance = self.prepare(self.dic)
         self.res = {'updated': False, 'created': False, 'exists': False}
         if model_instance:
@@ -215,7 +215,7 @@ class BaseInstanceGenerator(object):
                             model_instance, qs)
                 except IndexError:
                     # TODO: Arriving in this branch means that more than one
-                    # record fulfill the persistence criterion defined.
+                    # record fulfills the persistence criterion.
                     # Add error handling.
                     string = ''
                     for key in self.persistence:
@@ -329,6 +329,10 @@ class FkInstanceGenerator(RelInstanceGenerator):
         self.field = field
         self.related_field = field.rel.field_name
         self.update = False
+        try:
+            self.update = dic.get('etl_update')
+        except(AttributeError):
+            pass
 
     def prepare(self, value):
         if not value:
