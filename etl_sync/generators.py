@@ -108,7 +108,8 @@ class BaseInstanceGenerator(object):
                 pass
             else:
                 if value:
-                    query = query & Q(**{fieldname: value})
+                    query = query & Q(
+                        **{fieldname: value})
         return self.model_class.objects.filter(query)
 
     def _check_persistence(self, instance, persistence):
@@ -277,6 +278,13 @@ class InstanceGenerator(BaseInstanceGenerator):
                 return True
         return False
 
+    def _prepare_integer(self, field, value):
+        if value:
+            try:
+                return int(value)
+            except ValueError:
+                return None
+
     preparations = {
         'ForeignKey': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
@@ -284,7 +292,8 @@ class InstanceGenerator(BaseInstanceGenerator):
         'GeometryField': _prepare_field,
         'CharField': _prepare_text,
         'TextField': _prepare_text,
-        'BooleanField': _prepare_boolean
+        'BooleanField': _prepare_boolean,
+        'IntegerField': _prepare_integer
     }
 
     def prepare(self, dic):
