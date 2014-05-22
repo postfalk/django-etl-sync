@@ -433,3 +433,11 @@ class TestPreparations(TestCase):
         for test in tests:
             self.assertEqual(
                 generator._prepare_boolean(None, test[0]), test[1])
+
+    def test_prepare_integer(self):
+        generator = InstanceGenerator(SomeModel, {})
+        tests = [
+            ('1', 1), ('', None), (0, 0), (1, 1), ('bla', None)]
+        for test in tests:
+            self.assertEqual(
+                generator._prepare_integer(None, test[0]), test[1])

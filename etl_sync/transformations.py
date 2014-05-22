@@ -1,13 +1,14 @@
-"""Provides class to do transformations between data extraction
-and loading. Keep compatible to Django's Form class so that
-simple transformations can be done with forms."""
 from django.core.exceptions import ValidationError
 
 
 class Transformer(object):
-    """Base transformer."""
+    """Base transformer. Django forms can be used instead.
+    This class contains only the bare minimum of methods
+    and is able to process a list of forms."""
     forms = []
     error = None
+    # dictionary of mappings applied in remap
+    mappings = {}
 
     def __init__(self, dic, defaults={}):
         self.dic = dic
@@ -34,11 +35,14 @@ class Transformer(object):
         return dic
 
     def validate(self, dic):
-        """Raise ValidationError here."""
+        """Raise validation errors here."""
         pass
 
     def remap(self, dic):
         """Use this method for remapping dictionary keys."""
+        for key in self.mappings:
+            dic[self.mappings[key]] = dic[key]
+            del dic[key]
         return dic
 
     def transform(self, dic):
@@ -53,7 +57,6 @@ class Transformer(object):
         dic = self._process_forms(dic)
         dic = self.transform(dic)
         self.validate(dic)
-        # print(dic)
         return dic
 
     def clean(self, dic):

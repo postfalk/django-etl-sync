@@ -279,11 +279,12 @@ class InstanceGenerator(BaseInstanceGenerator):
         return False
 
     def _prepare_integer(self, field, value):
-        if value:
+        if not isinstance(value, int):
             try:
                 return int(value)
             except ValueError:
                 return None
+        return value
 
     preparations = {
         'ForeignKey': _prepare_fk,
