@@ -282,7 +282,15 @@ class InstanceGenerator(BaseInstanceGenerator):
         if not isinstance(value, int):
             try:
                 return int(value)
-            except ValueError:
+            except (ValueError, TypeError):
+                return None
+        return value
+
+    def _prepare_float(self, field, value):
+        if not isinstance(value, float):
+            try:
+                return float(value)
+            except (ValueError, TypeError):
                 return None
         return value
 
@@ -294,7 +302,8 @@ class InstanceGenerator(BaseInstanceGenerator):
         'CharField': _prepare_text,
         'TextField': _prepare_text,
         'BooleanField': _prepare_boolean,
-        'IntegerField': _prepare_integer
+        'IntegerField': _prepare_integer,
+        'FloatField': _prepare_float
     }
 
     def prepare(self, dic):
