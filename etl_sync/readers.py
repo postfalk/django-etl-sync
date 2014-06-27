@@ -2,7 +2,6 @@
 Reader classes for ETL.
 """
 from osgeo import ogr
-import unicodecsv as csv
 
 
 def unicode_dic(dic, encoding):
@@ -17,9 +16,9 @@ def unicode_dic(dic, encoding):
 
 class ShapefileReader(object):
     """
-    ShapefileReader compatible to csv.DictReader (only within the context below).
-    Would be great to make this fully compatible. See pyshp as an example already
-    doing it (not using ogr).
+    ShapefileReader compatible to csv.DictReader (only within the context
+    below). Would be great to make this fully compatible. See pyshp as
+    an example already doing it (not using ogr).
     """
 
     def __init__(self, source, encoding='utf-8'):
@@ -30,6 +29,7 @@ class ShapefileReader(object):
         self.encoding = encoding
         self.shapefile = ogr.Open(source)
         self.layer = self.shapefile.GetLayer(0)
+        self.srs = self.layer.GetSpatialRef()
 
     def length(self):
         return self.layer.GetFeatureCount()
@@ -44,4 +44,3 @@ class ShapefileReader(object):
             ret = unicode_dic(ret, self.encoding)
             ret['geometry'] = feature.geometry().ExportToWkt()
             return ret
-
