@@ -1,0 +1,3 @@
+# test requirements
+django
+unicodecsv
