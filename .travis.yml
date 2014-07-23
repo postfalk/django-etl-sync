@@ -1,8 +1,8 @@
 language: python
   - "2.7"
 before_install:
-  - "sudo apt-get update -qq -y "
-  - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"python:
+  - "sudo apt-get update -qq -y"
+  - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 virtualenv:
   - system_site_packages: true
