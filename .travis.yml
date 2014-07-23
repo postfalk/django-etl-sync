@@ -7,7 +7,7 @@ before_install:
 # virtualenv:
 #  - system_site_packages: true
 install: 
-  - "pip install ."  
+#  - "pip install ."  
   - "pip install -r requirements.txt"
   - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
 # command to run tests, e.g. python setup.py test
