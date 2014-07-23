@@ -1,13 +1,14 @@
 language: python
   - "2.7"
 before_install:
-  - "sudo apt-get update -qq -y"
-  - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"
+    #- "sudo apt-get update -qq -y"
+    # - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-virtualenv:
-  - system_site_packages: true
+# virtualenv:
+#  - system_site_packages: true
 install: 
   - "pip install -r requirements.txt"
+  - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
 # command to run tests, e.g. python setup.py test
 script:
   - python etl_sync/runtests.py
