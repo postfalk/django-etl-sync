@@ -2,7 +2,8 @@
 Django ETL Sync
 ===============
 
-[![Build Status](https://travis-ci.org/postfalk/django-etl-sync.svg?branch=master)](https://travis-ci.org/postfalk/django-etl-sync)
+.. image:: https://travis-ci.org/postfalk/django-etl-sync.svg?branch=master
+    :target: https://travis-ci.org/postfalk/django-etl-sync
 
 This reusable app is an ETL module that is not geared toward speed but toward syncing 
 data sources (e.g. for an API). Data persistence as well as data normalization were the main concerns. 
