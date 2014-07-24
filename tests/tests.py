@@ -1,7 +1,7 @@
 import os
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from etl_sync.tests.models import (
+from models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
     Numero, SomeModel, AnotherModel, IntermediateModel)
 from etl_sync.generators import (

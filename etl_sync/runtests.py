@@ -18,16 +18,12 @@ if not settings.configured:
             'django.contrib.contenttypes',
             'django.contrib.sessions',
             'django.contrib.admin',
-            'etl_sync',
-            'etl_sync.tests'
+            'tests'
         ),
-        PROJECT_ROOT = os.path.dirname(os.path.join('..', __file__))
     )
-sys.path.insert(0, settings.PROJECT_ROOT)
-print sys.path
 
 from django.test.simple import DjangoTestSuiteRunner
 testrunner = DjangoTestSuiteRunner(verbosity=1)
-failures = testrunner.run_tests(['tests',])
+failures = testrunner.run_tests(['tests'])
 if failures:
     sys.exit(failures)
