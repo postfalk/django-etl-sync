@@ -1,20 +1,19 @@
 language: python
 python:
  - "2.7"
- - "3.3"
 before_install:
  - "sudo apt-get update -qq -y"
  - "sudo apt-get install -qq -y libgdal-dev gdal-bin"
 env:
- - DJANGO=1.5.5
- - DJANGO=1.6.5
+ - DJANGO_VERSION=1.5.5
+ - DJANGO_VERSION=1.6.5
 virtualenv:
  system_site_packages: true
 install: 
  - pip install unicodecsv
  - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0
  - pip install coveralls
- - pip install -q Django==$DJANGO
+ - pip install Django==$DJANGO_VERSION
 script:
     coverage run --source etl_sync runtests.py
 after_success:
