@@ -4,14 +4,17 @@ python:
 before_install:
  - "sudo apt-get update -qq -y"
  - "sudo apt-get install -qq -y libgdal-dev gdal-bin build-essential git"
+env:
+ - DJANGO=1.5.5
+ - DJANGO=1.6.5
 virtualenv:
  system_site_packages: true
 install: 
- #- "pip install ."   
  - "pip install -r requirements.txt"
  - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
  - "pip install coveralls"
-    # command to run tests, e.g. python setup.py test
+ - pip install -q Django==$DJANGO --use-mirrors
+   # command to run tests, e.g. python setup.py test
 script:
     coverage run --source etl_sync runtests.py
 after_success:
