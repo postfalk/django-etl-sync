@@ -12,5 +12,6 @@ install:
  - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
     # command to run tests, e.g. python setup.py test
 script:
-    - python runtests.py
-
+    coverage run --source django-etl-sync python runtests.py
+after_success:
+    coveralls
