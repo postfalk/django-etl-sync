@@ -1,5 +1,4 @@
 import os
-import django
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from models import (
@@ -10,8 +9,6 @@ from etl_sync.generators import (
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.readers import unicode_dic
 from etl_sync.transformations import Transformer
-
-print django.VERSION
 
 
 class TestModule(TestCase):
