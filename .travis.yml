@@ -9,6 +9,7 @@ before_install:
 install: 
  - "pip install ."   
  - "pip install -r requirements.txt"
+ - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
     # command to run tests, e.g. python setup.py test
 script:
     - python etl_sync/runtests.py
