@@ -1,3 +1,4 @@
+import re
 from django.core.exceptions import ValidationError
 
 
@@ -9,10 +10,14 @@ class Transformer(object):
     error = None
     # dictionary of mappings applied in remap
     mappings = {}
+    # dictionary of fieldnames and regexes for invalid values
+    blacklist = {}
+    defaults = {}
 
     def __init__(self, dic, defaults={}):
         self.dic = dic
-        self.defaults = defaults
+        if defaults:
+            self.defaults = defaults
 
     def _process_forms(self, dic):
         """Processes a list of forms."""
@@ -33,6 +38,16 @@ class Transformer(object):
             dic = {}
         dic = dict(dic.items() + dictionary.items())
         return dic
+
+    def check_blacklist(self, dic):
+        """Raise ValidationError if value or pattern is
+        black-listed."""
+        for key, value in self.blacklist.iteritems():
+            for v in value:
+                if re.match(v, dic[key]):
+                    raise ValidationError(
+                        'Value {} not allowed in field {}'.format(
+                            key, v))
 
     def validate(self, dic):
         """Raise validation errors here."""
@@ -57,6 +72,7 @@ class Transformer(object):
         dic = self._process_forms(dic)
         dic = self.transform(dic)
         self.validate(dic)
+        self.check_blacklist(dic)
         return dic
 
     def clean(self, dic):

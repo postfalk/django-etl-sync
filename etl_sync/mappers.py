@@ -11,7 +11,9 @@ from etl_sync.transformations import Transformer
 
 
 class FeedbackCounter(object):
-    """Keeps track of the etl process and provides feedback."""
+    """
+    Keeps track of the etl process and provides feedback.
+    """
 
     def __init__(self, message=None, feedbacksize=5000, counter=0):
         self.counter = counter
@@ -24,7 +26,9 @@ class FeedbackCounter(object):
         self.feedbacktime = self.starttime
 
     def _feedback(self):
-        """Print feedback."""
+        """
+        Print feedback.
+        """
         if self.counter % self.feedbacksize == 0:
             print(
                 '{0} {1} processed in {2}, {3}, {4} created, {5} updated, '
@@ -52,7 +56,9 @@ class FeedbackCounter(object):
         self.updated += 1
 
     def use_result(self, res):
-        """Use feedback from InstanceGenerator to set counters."""
+        """
+        Use feedback from InstanceGenerator to set counters.
+        """
         if res.get('created'):
             self.create()
         elif res.get('updated'):
@@ -61,7 +67,9 @@ class FeedbackCounter(object):
             self.increment()
 
     def finished(self):
-        """Provides final message."""
+        """
+        Provides a final message.
+        """
         return (
             'Data extraction finished {0}\n\n{1} '
             'created\n{2} updated\n{3} rejected'.format(
@@ -70,7 +78,9 @@ class FeedbackCounter(object):
 
 
 class FileReaderLogManager():
-    """Context manager that creates the reader and handles files."""
+    """
+    Context manager that creates the reader and handles files.
+    """
 
     def __init__(self, filename, logname=None,
                  reader_class=None, encoding=None):
@@ -82,7 +92,9 @@ class FileReaderLogManager():
         self.logfile = None
 
     def _log(self, text):
-        """Log to logfile or to stdout if self.logfile=None"""
+        """
+        Log to logfile or to stdout if self.logfile=None
+        """
         print(text, file=self.logfile)
 
     def __enter__(self):
@@ -105,8 +117,11 @@ class FileReaderLogManager():
 
 
 class Mapper(object):
-    """Generic mapper object for ETL. Create reader_class for file formats others
-    than tab-delimited CSV."""
+    """
+    Generic mapper object for ETL.
+    """
+    # TODO: Create reader_class for file formats others
+    # than tab-delimited CSV.
     reader_class = None
     transformer_class = Transformer
     model_class = None
@@ -133,8 +148,6 @@ class Mapper(object):
             else:
                 warnings.warn(
                     'Invalid keyword argument for Mapper will be ignored.')
-        if not self.encoding:
-            self.encoding = 'utf-8'
         if hasattr(settings, 'ETL_FEEDBACK'):
             self.feedbacksize = settings.ETL_FEEDBACK
         if self.filename:
@@ -143,11 +156,15 @@ class Mapper(object):
                     self.filename, datetime.now().strftime('%Y-%m-%d')))
 
     def _log(self, text):
-        """Log to logfile or to stdout if self.logfile=None"""
+        """
+        Log to logfile or to stdout if self.logfile=None
+        """
         print(text, file=self.logfile)
 
     def load(self):
-        """Loads data into database using Django models and error logging."""
+        """
+        Loads data into database using Django models and error logging.
+        """
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
         with FileReaderLogManager(self.filename,
                                   logname=self.logfilename,

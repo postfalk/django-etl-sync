@@ -21,7 +21,7 @@ The transformation process generates a dictionary matching destination model fie
 ### Installation
 
 The package is in active development toward a release. For evaluation, 
-testing etc. 
+contributions, and testing. 
 
 ```bash
     pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync 
@@ -139,6 +139,34 @@ directly accessed (see below). However ...
 
 Once the variable **persistence** is overwritten the model field attributes will be ignored. Nevertheless,
 conflicts with your data definition will through database errors.
+
+## Transformations
+
+Transformations remap the dictionary from the CSV reader or 
+another reader class to the Django model. We attempt to map the 
+dictionary key to the model field with the matching name. 
+The transformer classes allow for remapping and validation of incoming
+records.
+
+Instantiate InstanceGenerator with a costumized Transformer class:
+
+```python
+    from etl_sync.generators import InstanceGenerator
+    from etl_sync.transformes import Transformer
+
+    class MyTransformer(Transformer):
+        mappings = {‘id’: ‘record’, ‘name’: ‘last_name’}
+        defaults = {‘last_name’: ‘Doe’}
+        forms = []
+        blacklist = {‘last_name’: ‘NA’}
+
+    class MyInstanceGenerator(InstanceGenerator):
+        transformer_class = MyTransformer
+```
+
+
+
+
 
 ## Roadmap
 
