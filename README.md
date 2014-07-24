@@ -24,8 +24,10 @@ The package is in active development toward a release. For evaluation,
 testing etc. 
 
 ```bash
-    pip install git+ssh://git@github.com/postfalk/django-etl-sync 
+    pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync 
 ````
+
+Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
 ### Minimal Examples
 
