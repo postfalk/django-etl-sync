@@ -169,7 +169,7 @@ There are a couple of things going on here:
 * The `mapping` property contains a dictionary in the form `{‘original_fieldname’: ‘new_fieldname’}` which will remap the dictionary.
 * The `defaults` property holds a dictionary that gets applied if the value for the dictionary key in question is empty.
 * The `forms` property holds a list of Django forms that get applied to the dictionary. WARNING: old values will not be removed. The cleaned_data keys will be added to the dictionary.
-* And finally the `blacklist` property holds a list of values for each keys that will be rendered invalid.
+* And finally the `blacklist` property holds a list of values for a particular key that will trigger a validation error. The record will be discarded.
 
 WARNING: These methods will be applied in exactly that order. If the dictionary changes in one of these steps, the next step needs to take these changes into consideration.
 
