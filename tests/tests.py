@@ -1,4 +1,5 @@
 import os
+import glob
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from models import (
@@ -275,6 +276,15 @@ class TestLoad(TestCase):
     """
     Tests data loading from file.
     """
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        path = os.path.dirname(os.path.realpath(__file__))
+        files = glob.glob('%s/data.txt.*.log'% path)
+        for fil in files:
+            os.remove(fil)
 
     def test_load_from_file(self):
         path = os.path.dirname(os.path.realpath(__file__))
