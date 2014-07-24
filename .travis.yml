@@ -3,7 +3,7 @@ python:
  - "2.7"
 before_install:
  - "sudo apt-get update -qq -y"
- - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"
+ - "sudo apt-get install -qq -y libgdal-dev gdal-bin build-essential git"
 virtualenv:
  system_site_packages: true
 install: 
@@ -12,5 +12,5 @@ install:
  - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
     # command to run tests, e.g. python setup.py test
 script:
-    - python etl_sync/runtests.py
+    - python runtests.py
 
