@@ -155,10 +155,10 @@ Instantiate InstanceGenerator with a costumized Transformer class:
     from etl_sync.transformes import Transformer
 
     class MyTransformer(Transformer):
-        mappings = {“id”: “record”, “name”: “last_name”}
-        defaults = {“last_name”: “Doe”}
+        mappings = {'id': 'record', 'name': 'last_name'}
+        defaults = {'last_name': 'Doe'}
         forms = []
-        blacklist = {“last_name”: [“NA”, r”unknown”]}
+        blacklist = {'last_name': ['NA', r'unknown']}
 
     class MyInstanceGenerator(InstanceGenerator):
         transformer_class = MyTransformer
@@ -179,13 +179,13 @@ In addition to these built-in transformations, there are two additional methods 
     class MyTransformer(Transformer):
 
     def transform(self, dic):
-        “””Make whatever changes needed here.”””
+        """Make whatever changes needed here."""
         return dic
 
     def validate(self, dic):
-        “””Raise ValidationErrors”””
-        if last_name == “Bunny”:
-            raise ValidationError(“I do not want to have this record”) 
+        """Raise ValidationErrors"""
+        if last_name == 'Bunny':
+            raise ValidationError('I do not want to have this record') 
 ```
 
 Both methods will be applied after the forms and before the blacklist.
