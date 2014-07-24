@@ -140,6 +140,21 @@ directly accessed (see below). However ...
 Once the variable **persistence** is overwritten the model field attributes will be ignored. Nevertheless,
 conflicts with your data definition will through database errors.
 
+## Readers
+
+By default django-etl-sync uses the csv.DictReader, other reader classes can be used or
+created if they are similar to csv.DictReader.
+
+The package currently contains a reader for ESRI Shapefiles.
+
+```python
+from etl_sync.generators import InstanceGenerator
+from etl_sync.readers import ShapefileReader
+
+class MyInstanceGenerator(InstanceGenerator):
+    reader_class=Shapefilereader
+```
+
 ## Transformations
 
 Transformations remap the dictionary from the CSV reader or 
@@ -190,13 +205,27 @@ In addition to these built-in transformations, there are two additional methods 
 
 Both methods will be applied after the forms and before the blacklist.
 
+## Django form support
+
+Django-etl-sync fully support Django forms. You can reuse the Django forms from your 
+project to bulk load data. See section “Transformations”.
+
+## File load
+
+## Logging
+
+Django-etl-sync will create a log file in the same location as the source file:
+
+```bash
+    source_file.txt
+    source_file.txt.2014-07-23.log
+```
+
 
 ## Roadmap
 
 - Create readers for more source types, especially for comma limited data, and headerless CSV.
 - Add a way for data removal, if deleted from source.
-- Improve logging.
-- Form support
 
 
 
