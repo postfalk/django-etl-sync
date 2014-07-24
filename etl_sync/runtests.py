@@ -24,6 +24,7 @@ if not settings.configured:
         PROJECT_ROOT = os.path.dirname(os.path.join('..', __file__))
     )
 sys.path.insert(0, settings.PROJECT_ROOT)
+print sys.path
 
 from django.test.simple import DjangoTestSuiteRunner
 testrunner = DjangoTestSuiteRunner(verbosity=1)
