@@ -47,11 +47,11 @@ The app provides two ways of access: file level and record level.
   from django.db import models
   
   class TestModel(models.Model)
-  """
-  Example Model.
-  """
-  record = models.CharField(max_length=10)
-  name = models.CharField(max_length=10, null=True, blank=True)
+    """
+    Example Model.
+    """
+    record = models.CharField(max_length=10)
+    name = models.CharField(max_length=10, null=True, blank=True)
   
   
   # <yourscript>.py
