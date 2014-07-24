@@ -1,20 +1,20 @@
 language: python
 python:
  - "2.7"
+ - "3.3"
 before_install:
  - "sudo apt-get update -qq -y"
- - "sudo apt-get install -qq -y libgdal-dev gdal-bin build-essential git"
+ - "sudo apt-get install -qq -y libgdal-dev gdal-bin"
 env:
  - DJANGO=1.5.5
  - DJANGO=1.6.5
 virtualenv:
  system_site_packages: true
 install: 
- - "pip install -r requirements.txt"
- - "CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0"
- - "pip install coveralls"
- - pip install -q Django==$DJANGO --use-mirrors
-   # command to run tests, e.g. python setup.py test
+ - pip install unicodecsv
+ - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10.0
+ - pip install coveralls
+ - pip install -q Django==$DJANGO
 script:
     coverage run --source etl_sync runtests.py
 after_success:

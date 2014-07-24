@@ -1,3 +1,0 @@
-# test requirements
-django==1.6.3
-unicodecsv==0.9.4
