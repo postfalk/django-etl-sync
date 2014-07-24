@@ -178,14 +178,14 @@ In addition to these built-in transformations, there are two additional methods 
 ```python
     class MyTransformer(Transformer):
 
-    def transform(self, dic):
-        """Make whatever changes needed here."""
-        return dic
+        def transform(self, dic):
+            """Make whatever changes needed here."""
+            return dic
 
-    def validate(self, dic):
-        """Raise ValidationErrors"""
-        if last_name == 'Bunny':
-            raise ValidationError('I do not want to have this record') 
+        def validate(self, dic):
+            """Raise ValidationErrors"""
+            if last_name == 'Bunny':
+                raise ValidationError('I do not want to have this record') 
 ```
 
 Both methods will be applied after the forms and before the blacklist.
