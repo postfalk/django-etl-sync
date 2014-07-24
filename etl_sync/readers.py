@@ -1,8 +1,7 @@
 """
 Reader classes for ETL.
 """
-from osgeo import ogr
-from osgeo import osr
+from osgeo import osr, ogr
 
 
 def unicode_dic(dic, encoding):
@@ -17,9 +16,9 @@ def unicode_dic(dic, encoding):
 
 class ShapefileReader(object):
     """
-    ShapefileReader is compatible to csv.DictReader (only within the context
-    of this project). Would be great to make this fully compatible.
-    See pyshp as an example already doing it (not using ogr).
+    ShapefileReader reads ESRI shape files and is partially
+    compatible with csv.DictReader (currently only with the context
+    of this project.
     """
 
     def __init__(self, source, encoding='utf-8'):

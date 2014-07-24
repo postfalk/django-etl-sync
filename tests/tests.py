@@ -8,7 +8,7 @@ from models import (
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
-from etl_sync.readers import unicode_dic
+from etl_sync.readers import unicode_dic, ShapefileReader
 from etl_sync.transformations import Transformer
 
 
@@ -282,7 +282,7 @@ class TestLoad(TestCase):
 
     def tearDown(self):
         path = os.path.dirname(os.path.realpath(__file__))
-        files = glob.glob('%s/data.txt.*.log'% path)
+        files = glob.glob('%s/data.txt.*.log' % path)
         for fil in files:
             os.remove(fil)
 
@@ -307,9 +307,14 @@ class TestReaders(TestCase):
         dic = unicode_dic(testdic, 'utf-8')
         self.assertEqual(dic['utf8'], u'testing\xa0')
 
-
-class TestValidationError(TestCase):
-    pass
+    def test_shapefile_reader(self):
+        path = os.path.dirname(os.path.realpath(__file__))
+        testfilename = os.path.join(path, 'test_shapefile.shp')
+        reader = ShapefileReader(testfilename)
+        dic = reader.next()
+        self.assertEqual(dic['text'], 'three')
+        dic = reader.next()
+        self.assertEqual(dic['text'], 'two')
 
 
 class TestFeedbackCounter(TestCase):
