@@ -20,6 +20,13 @@ The transformation process generates a dictionary matching destination model fie
 
 ### Installation
 
+The package is in active development toward a release. For evaluation, 
+testing etc. 
+
+```bash
+    pip install git+ssh://git@github.com/postfalk/django-etl-sync 
+````
+
 ### Minimal Examples
 
 The app provides two ways of access: file level and record level.
