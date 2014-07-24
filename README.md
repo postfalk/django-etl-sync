@@ -155,17 +155,40 @@ Instantiate InstanceGenerator with a costumized Transformer class:
     from etl_sync.transformes import Transformer
 
     class MyTransformer(Transformer):
-        mappings = {‘id’: ‘record’, ‘name’: ‘last_name’}
-        defaults = {‘last_name’: ‘Doe’}
+        mappings = {“id”: “record”, “name”: “last_name”}
+        defaults = {“last_name”: “Doe”}
         forms = []
-        blacklist = {‘last_name’: ‘NA’}
+        blacklist = {“last_name”: [“NA”, r”unknown”]}
 
     class MyInstanceGenerator(InstanceGenerator):
         transformer_class = MyTransformer
 ```
 
+There are a couple of things going on here:
 
+* The `mapping` property contains a dictionary in the form `{‘original_fieldname’: ‘new_fieldname’}` which will remap the dictionary.
+* The `defaults` property holds a dictionary that gets applied if the value for the dictionary key in question is empty.
+* The `forms` property holds a list of Django forms that get applied to the dictionary. WARNING: old values will not be removed. The cleaned_data keys will be added to the dictionary.
+* And finally the `blacklist` property holds a list of values for each keys that will be rendered invalid.
 
+WARNING: These methods will be applied in exactly that order. If the dictionary changes in one of these steps, the next step needs to take these changes into consideration.
+
+In addition to these built-in transformations, there are two additional methods that can be modified for more thorough changes:
+
+```python
+    class MyTransformer(Transformer):
+
+    def transform(self, dic):
+        “””Make whatever changes needed here.”””
+        return dic
+
+    def validate(self, dic):
+        “””Raise ValidationErrors”””
+        if last_name == “Bunny”:
+            raise ValidationError(“I do not want to have this record”) 
+```
+
+Both methods will be applied after the forms and before the blacklist.
 
 
 ## Roadmap
