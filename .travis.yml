@@ -13,6 +13,6 @@ install:
  - "pip install coveralls"
     # command to run tests, e.g. python setup.py test
 script:
-    coverage run --source django-etl-sync python runtests.py
+    coverage run --source django-etl-sync runtests.py
 after_success:
     coveralls
