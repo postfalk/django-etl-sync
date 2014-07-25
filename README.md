@@ -9,35 +9,41 @@ ETL based on Django model introspection
 
 ## Overview
 
-This reusable app is an ETL module that is not geared toward speed but toward syncing 
-data sources (e.g. for an API). Data persistence as well as data normalization were the main concerns. 
+This reusable Django app provides classes to include light weight ETL into your project.
 
-The module derives ETL rules by inspecting Django Models. This rules can be modified and overriden.
+The package is not geared toward speed but toward sync'ing with upstream data sources (e.g. for an API).
 
-The transformation process generates a dictionary matching destination model fields.
+However, subclassing allows for replacing methods with speedier, simplified or more sophisticated versions.
+
+The package supports Data persistence, normalization, and recreating relationships from flat files.
+
+The app derives most ETL rules from model introspection. This rules can be easily modified and overriden.
+
+The project can be easily used within a parallelization framework such as Celery, thorough checks of the state of the destination avoids race conditions and inconsistencies (at the cost of speed.)
+
 
 ## How to use
 
 ### Installation
 
-The package is in active development toward a release. For evaluation, 
-contributions, and testing. 
+The package is in active development toward a release. For evaluation,
+contributions, and testing.
 
 ```bash
-    pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync 
+    pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync
 ````
 
 Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
 ### Minimal Examples
 
-The app provides two principal ways of usage on either file level or the record level.
+The app provides two principal ways of usage on either file or record level.
 
-In the first case use the `Mapper` class to specify all ETL operations. If you need
-to make changes to the data between reading from the file and writing them to the 
+1. In the first case use the `Mapper` class to specify all ETL operations. If you need
+to make changes to the data between reading from the file and writing them to the
 database create a costum `Transformer` class (see below).
 
-In the second example you would use the `Generator` cass. This class maps
+2. In the second example you would use the `Generator` cass. This class maps
 dictionary keys into a Django model and returns an instance. In this case
 custom transformations need to be performed before using the Generator class.
 This can be done in any possible way. Of course you can use the `Transformer`
@@ -76,9 +82,9 @@ class YourMapper(Mapper)
     filename = 'data.txt'
     model_class = TestModel
 
-    if __name__ == '__main__':  
-      mapper = YourMapper()
-      res = mapper.load()
+    if __name__ == '__main__':
+        mapper = YourMapper()
+        res = mapper.load()
 ```
 
 
@@ -87,35 +93,33 @@ class YourMapper(Mapper)
 
 ```python
 
-  # <yourscript>.py
-  from etl_sync.generators import BaseInstanceGenerator
-  from <yourproject>.models import TestModel
+# <yourscript>.py
+from etl_sync.generators import BaseInstanceGenerator
+from <yourproject>.models import TestModel
 
-  dic = {'record': 3, 'name': 'three'}
+dic = {'record': 3, 'name': 'three'}
 
-  generator = BaseInstanceGenerator(TestModel, dic)
-  instance = generator.get_instance()
-  print(instance, generator.res)
+if __name__ == '__main__':
+    # add additional transformations here
+    generator = BaseInstanceGenerator(TestModel, dic)
+    instance = generator.get_instance()
+    print(instance, generator.res)
 ```
 
 
 ### Persistence
 
-For sync'ing the data it is essential to identify whether a record already exists, and whether it needs to be modified or added.
-
-For more sophisticated ETL tasks use the class **InstanceGenerator** which provides persistence checks as well as generation of related instances such as foreign keys and many-to-many relationships.
-
 **Unique fields**
 
-Before loading a record it might be necessary to check whether the record already exists, whether it needs to be added or updated (persistence). 
-By default the module inspects the target model and uses fields with the **model field** attribute unique=True as criterion for persistence. The module will check
-first whether any record with this combination of values already exists and update that record. 
+Before loading a record it might be necessary to check whether it already exists, whether it needs to be added or updated (persistence).
+By default the module inspects the target model and uses model fields with the attribute unique=True as criterion for persistence.
+The module will check first whether any record with the given combination of values in unique fields already exists and update that record.
 
-The id field is excluded from this check. Do not use the model internal pk field as identifier for your data! Add an extra record field.
+<font color='red'>WARNING: Do not use the models internal pk or ide field as identifier for your data! Add an extra record or remote_id field.</font>*
 
 **Extra arguments**
 
-Another method to add (or overwrite) persistence criterions is to add a a list of fields via key word argument. 
+Another method to add (or overwrite) persistence criterions is to add a a list of fields via key word argument.
 
 ```python
     generator = InstanceGenerator(TestModel, dic, persistence = ['record', 'source'])
@@ -144,7 +148,7 @@ The last method is to put an extra key value pair in your data dictionary.
   dic = {'record': 6365, 'name': 'john', 'occupation': 'developer', 'etl_persistence': ['record']}
 ```
 
-This technique is useful for nested records if the recursive call of InstanceGenerator cannot be 
+This technique is useful for nested records if the recursive call of InstanceGenerator cannot be
 directly accessed (see below). However ...
 
 **Defining persistence by a field attributes and a concise data model is the preferred method.**
@@ -169,9 +173,9 @@ class MyMapper(Mapper):
 
 ## Transformations
 
-Transformations remap the dictionary from the CSV reader or 
-another reader class to the Django model. We attempt to map the 
-dictionary key to the model field with the matching name. 
+Transformations remap the dictionary from the CSV reader or
+another reader class to the Django model. We attempt to map the
+dictionary key to the model field with the matching name.
 The transformer classes allow for remapping and validation of incoming
 records.
 
@@ -215,7 +219,7 @@ In addition to these built-in transformations, there are two additional methods 
         def validate(self, dic):
             """Raise ValidationErrors"""
             if last_name == 'Bunny':
-                raise ValidationError('I do not want to have this record') 
+                raise ValidationError('I do not want to have this record')
 ```
 
 Both methods will be applied after the forementioned built-in methods.
@@ -223,7 +227,7 @@ Both methods will be applied after the forementioned built-in methods.
 
 ## Django form support
 
-Django-etl-sync fully support Django forms. You can reuse the Django forms from your 
+Django-etl-sync fully support Django forms. You can reuse the Django forms from your
 project to bulk load data. See section “Transformations”.
 
 
@@ -239,7 +243,7 @@ project to bulk load data. See section “Transformations”.
 
 ## Logging
 
-Django-etl-sync will create a log file in the same location as the source file. 
+Django-etl-sync will create a log file in the same location as the source file.
 It will contain the list of rejected records.
 
 ```bash
