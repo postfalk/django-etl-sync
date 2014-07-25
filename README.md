@@ -33,7 +33,7 @@ Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
 The app provides two ways of access: file level and record level.
 
-#### Minimal example: File level load:
+#### Minimal example: file load:
 
 ```python
   # data.txt
@@ -45,30 +45,30 @@ The app provides two ways of access: file level and record level.
 
   # models.py
   from django.db import models
-  
+
   class TestModel(models.Model)
     """
     Example Model.
     """
     record = models.CharField(max_length=10)
     name = models.CharField(max_length=10, null=True, blank=True)
-  
-  
+
+
   # <yourscript>.py
   from etl_sync.mappers import Mapper
   from <yourproject>.models import TestModel
-  
+
   class YourMapper(Mapper)
     """
     Add your specific settings here.
     """
     filename = 'data.txt'
     model_class = TestModel
-  
+
   mapper = YourMapper
   res = mapper.load()
 ```
-  
+
 
 #### Minimal example: dictionary load
 
@@ -78,9 +78,9 @@ The app provides two ways of access: file level and record level.
   # <yourscript>.py
   from etl_sync.generators import BaseInstanceGenerator
   from <yourproject>.models import TestModel
-  
+
   dic = {'record': 3, 'name': 'three'}
-  
+
   generator = BaseInstanceGenerator(TestModel, dic)
   instance = generator.get_instance()
   print(instance, generator.res)
@@ -108,7 +108,7 @@ Another method to add (or overwrite) persistence criterions is to add a a list o
 ```python
     generator = InstanceGenerator(TestModel, dic, persistence = ['record', 'source'])
 ```
-    
+
 
 **Subclassing**
 
@@ -116,14 +116,14 @@ You can also subclass InstanceGenerator to create your own generator class.
 
 ```python
   from etl_sync.generators import InstanceGenerator
-  
+
   class MyGenerator(InstanceGenerator):
     """
     My generator class with costum persistence criterion.
     """
     persistence = ['record', 'source']
 ```
-    
+
 **etl_persistence key in data dictionary**
 
 The last method is to put an extra key value pair in your data dictionary.
@@ -151,7 +151,7 @@ The package currently contains a reader for ESRI Shapefiles.
 from etl_sync.generators import InstanceGenerator
 from etl_sync.readers import ShapefileReader
 
-class MyInstanceGenerator(InstanceGenerator):
+class MyMapper(Mapper):
     reader_class=Shapefilereader
 ```
 
@@ -166,7 +166,7 @@ records.
 Instantiate InstanceGenerator with a costumized Transformer class:
 
 ```python
-    from etl_sync.generators import InstanceGenerator
+    from etl_sync.mappers import Mapper
     from etl_sync.transformes import Transformer
 
     class MyTransformer(Transformer):
@@ -175,11 +175,14 @@ Instantiate InstanceGenerator with a costumized Transformer class:
         forms = []
         blacklist = {'last_name': ['NA', r'unknown']}
 
-    class MyInstanceGenerator(InstanceGenerator):
+    class MyMapper(InstanceGenerator):
+        model_class = {destination model}
         transformer_class = MyTransformer
-```
+        filename = myfile.txt
 
-There are a couple of things going on here:
+    mapper = MyMapper()
+    mapper.load()
+```
 
 * The `mapping` property contains a dictionary in the form `{‘original_fieldname’: ‘new_fieldname’}` which will remap the dictionary.
 * The `defaults` property holds a dictionary that gets applied if the value for the dictionary key in question is empty.
@@ -203,18 +206,29 @@ In addition to these built-in transformations, there are two additional methods 
                 raise ValidationError('I do not want to have this record') 
 ```
 
-Both methods will be applied after the forms and before the blacklist.
+Both methods will be applied after the forementioned built-in methods.
+
 
 ## Django form support
 
 Django-etl-sync fully support Django forms. You can reuse the Django forms from your 
 project to bulk load data. See section “Transformations”.
 
+
+## Create transformer for related models
+
+## Other strategies for loading normalized or related data
+
+### Table dumps of related tables
+
+### Creating related tables from same data source
+
 ## File load
 
 ## Logging
 
-Django-etl-sync will create a log file in the same location as the source file:
+Django-etl-sync will create a log file in the same location as the source file. 
+It will contain the list of rejected records.
 
 ```bash
     source_file.txt

@@ -70,9 +70,9 @@ class Transformer(object):
         dic = self.remap(dic)
         dic = self._apply_defaults(dic)
         dic = self._process_forms(dic)
+        self.check_blacklist(dic)
         dic = self.transform(dic)
         self.validate(dic)
-        self.check_blacklist(dic)
         return dic
 
     def clean(self, dic):
