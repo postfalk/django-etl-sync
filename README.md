@@ -31,22 +31,33 @@ Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
 ### Minimal Examples
 
-The app provides two ways of access: file level and record level.
+The app provides two principal ways of usage on either file level or the record level.
+
+In the first case use the `Mapper` class to specify all ETL operations. If you need
+to make changes to the data between reading from the file and writing them to the 
+database create a costum `Transformer` class (see below).
+
+In the second example you would use the `Generator` cass. This class maps
+dictionary keys into a Django model and returns an instance. In this case
+custom transformations need to be performed before using the Generator class.
+This can be done in any possible way. Of course you can use the `Transformer`
+class for this task.
+
 
 #### Minimal example: file load:
 
 ```python
-  # data.txt
-  record  name
-  1 one
-  2 two
-  3 three
+# data.txt
+record  name
+1 one
+2 two
+3 three
 
 
-  # models.py
-  from django.db import models
+# models.py
+from django.db import models
 
-  class TestModel(models.Model)
+class TestModel(models.Model)
     """
     Example Model.
     """
@@ -54,19 +65,20 @@ The app provides two ways of access: file level and record level.
     name = models.CharField(max_length=10, null=True, blank=True)
 
 
-  # <yourscript>.py
-  from etl_sync.mappers import Mapper
-  from <yourproject>.models import TestModel
+# <yourscript>.py
+from etl_sync.mappers import Mapper
+from <yourproject>.models import TestModel
 
-  class YourMapper(Mapper)
+class YourMapper(Mapper)
     """
     Add your specific settings here.
     """
     filename = 'data.txt'
     model_class = TestModel
 
-  mapper = YourMapper
-  res = mapper.load()
+    if __name__ == '__main__':  
+      mapper = YourMapper()
+      res = mapper.load()
 ```
 
 
