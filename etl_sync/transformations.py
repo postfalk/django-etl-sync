@@ -56,8 +56,8 @@ class Transformer(object):
     def remap(self, dic):
         """Use this method for remapping dictionary keys."""
         for key in self.mappings:
-            dic[self.mappings[key]] = dic[key]
-            del dic[key]
+            dic[key] = dic[self.mappings[key]]
+            del dic[self.mappings[key]]
         return dic
 
     def transform(self, dic):

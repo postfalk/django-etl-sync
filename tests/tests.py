@@ -363,7 +363,7 @@ class TestTransformer(TestCase):
         dic = {
             'TEST': 'test', 'another_field': 'content', 'third_field': 'text'}
         transformer = Transformer(dic)
-        transformer.mappings = {'TEST': 'test', 'another_field': 'field'}
+        transformer.mappings = {'test': 'TEST', 'field': 'another_field'}
         self.assertTrue(transformer.is_valid())
         res = transformer.cleaned_data
         self.assertEqual(res['test'], 'test')
