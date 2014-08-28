@@ -17,7 +17,7 @@ def unicode_dic(dic, encoding):
 class ShapefileReader(object):
     """
     ShapefileReader reads ESRI shape files and is partially
-    compatible with csv.DictReader (currently only with the context
+    compatible with csv.DictReader (currently only within the context
     of this project.
     """
 
