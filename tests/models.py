@@ -37,7 +37,7 @@ class Polish(models.Model):
 
 class ElNumero(models.Model):
     """
-    ForeignKey Model for unit tests.
+    Foreign key Model for unit tests.
     """
     rec = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=10, blank=True)
@@ -83,3 +83,8 @@ class IntermediateModel(models.Model):
     somemodel = models.ForeignKey(SomeModel)
     anothermodel = models.ForeignKey(AnotherModel)
     attribute = models.CharField(max_length=10, blank=True)
+
+
+class GeometryModel(models.Model):
+    geom2d = models.GeometryField()
+    geom3d = models.GeometryField(dim=3)

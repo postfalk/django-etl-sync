@@ -284,11 +284,15 @@ class InstanceGenerator(BaseInstanceGenerator):
                 return None
         return value
 
+    def _prepare_geometry(self, field, value):
+        print('here')
+        return value
+
     preparations = {
         'ForeignKey': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
         'DateTimeField': _prepare_date,
-        'GeometryField': _prepare_field,
+        'GeometryField': _prepare_geometry,
         'CharField': _prepare_text,
         'TextField': _prepare_text,
         'BooleanField': _prepare_boolean,

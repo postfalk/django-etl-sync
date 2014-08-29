@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
-    Numero, SomeModel, AnotherModel, IntermediateModel)
+    Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel)
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
@@ -475,3 +475,8 @@ class TestPreparations(TestCase):
         for test in tests:
             self.assertEqual(
                 generator._prepare_integer(None, test[0]), test[1])
+
+    def test_prepare_geometry(self):
+        generator = InstanceGenerator(GeometryModel, {})
+        value = 'test'
+        generator._prepare_geometry(None, value)

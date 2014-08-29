@@ -7,7 +7,7 @@ if not settings.configured:
         DEBUG=True,
         DATABASES={
             'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
+                'ENGINE': 'django.contrib.gis.db.backends.spatialite',
             }
         },
         MEDIA_ROOT=os.path.dirname(
