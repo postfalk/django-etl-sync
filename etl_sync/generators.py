@@ -285,7 +285,18 @@ class InstanceGenerator(BaseInstanceGenerator):
         return value
 
     def _prepare_geometry(self, field, value):
-        print('here')
+        """
+        Reduce geometry to two dimensions if models.GeometryField
+        dim parameter does not request otherwise.
+        """
+        # TODO: DO we need to add a 2d to 3d conversation filling z
+        # with 0?
+        from django.contrib.gis.geos import WKBWriter, GEOSGeometry
+        if isinstance(value, (str, unicode)):
+            value = GEOSGeometry(value)
+        wkb_writer = WKBWriter()
+        if value.hasz and field.dim == 2:
+            value = GEOSGeometry(wkb_writer.write(value))
         return value
 
     preparations = {

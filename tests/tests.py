@@ -477,6 +477,23 @@ class TestPreparations(TestCase):
                 generator._prepare_integer(None, test[0]), test[1])
 
     def test_prepare_geometry(self):
-        generator = InstanceGenerator(GeometryModel, {})
-        value = 'test'
-        generator._prepare_geometry(None, value)
+        from django.contrib.gis.geos import GEOSGeometry
+        example3d_string = (
+            'MULTIPOLYGON (((2 4 5, 2 6 5, 3 3 3, 2 4 5)),'
+            '((10 10 3, 11 10 4, 10 11 4, 10 10 3)))')
+        geom = GEOSGeometry(example3d_string)
+        generator = InstanceGenerator(
+            GeometryModel, {'geom2d': geom, 'geom3d': geom,
+                            'name': 'testcase 1'})
+        generator.get_instance()
+        item = GeometryModel.objects.filter(name='testcase 1')[0]
+        self.assertFalse(item.geom2d.hasz)
+        self.assertTrue(item.geom3d.hasz)
+        example2d_string = item.geom2d
+        geom = GEOSGeometry(example2d_string)
+        generator = InstanceGenerator(
+            GeometryModel, {'geom2d': geom, 'geom3d': geom,
+                            'name': 'testcase 2'})
+        generator.get_instance()
+        item = GeometryModel.objects.filter(name='testcase 2')[0]
+        self.assertFalse(item.geom2d.hasz)

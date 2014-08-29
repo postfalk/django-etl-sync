@@ -86,5 +86,7 @@ class IntermediateModel(models.Model):
 
 
 class GeometryModel(models.Model):
-    geom2d = models.GeometryField()
-    geom3d = models.GeometryField(dim=3)
+    name = models.CharField(max_length=10, null=True, blank=True)
+    geom2d = models.GeometryField(null=True, blank=True)
+    geom3d = models.GeometryField(null=True, blank=True, dim=3)
+    objects = models.GeoManager()
