@@ -9,6 +9,7 @@ before_install:
  - "cd pysqlite-2.6.3"
  - "sed -i '/SQLITE_OMIT_LOAD_EXTENSION/d' setup.cfg"
  - "sudo python setup.py install"
+ - "cd .."
 env:
  - DJANGO_VERSION=1.5.5
  - DJANGO_VERSION=1.6.5
