@@ -8,7 +8,7 @@ from django.forms import DateTimeField
 
 
 def get_unique_fields(model_class):
-    """Get model fields with attribute unique."""
+    """Get model fields with unique=True."""
     ret = []
     for field in model_class._meta.fields:
         if field.unique and not field.name == 'id':
@@ -17,29 +17,29 @@ def get_unique_fields(model_class):
 
 
 def get_unambigous_field(model_class):
-        """Checks whether there is a way to match a string to a
-        field in ForeignKey model. Use 'name' as default."""
-        ct_char = 0
-        ct_uniquechar = 0
-        for f in model_class._meta.fields:
-            test = (f.get_internal_type() == 'CharField')
-            if test and ct_char < 2:
-                if f.name == 'name':
-                    return 'name'
-                ct_char += 1
-                charfield = f.name
-            if f.unique and test:
-                if ct_uniquechar < 2:
-                    ct_uniquechar += 1
-                    uniquecharfield = f.name
-                else:
-                    break
-        if ct_char == 1:
-            return charfield
-        if ct_uniquechar == 1:
-            return uniquecharfield
-        raise ValidationError(
-            'Fk field cannot be assigned for {}'.format(model_class))
+    """Checks whether there is a way to match a string to a
+    field in ForeignKey model. Use 'name' as default."""
+    ct_char = 0
+    ct_uniquechar = 0
+    for f in model_class._meta.fields:
+        test = (f.get_internal_type() == 'CharField')
+        if test and ct_char < 2:
+            if f.name == 'name':
+                return 'name'
+            ct_char += 1
+            charfield = f.name
+        if f.unique and test:
+            if ct_uniquechar < 2:
+                ct_uniquechar += 1
+                uniquecharfield = f.name
+            else:
+                break
+    if ct_char == 1:
+        return charfield
+    if ct_uniquechar == 1:
+        return uniquecharfield
+    raise ValidationError(
+        'Fk field cannot be assigned for {}'.format(model_class))
 
 
 class BaseInstanceGenerator(object):
@@ -265,17 +265,7 @@ class InstanceGenerator(BaseInstanceGenerator):
 
     def _prepare_boolean(self, field, value):
         if value:
-            try:
-                value = value.lower()
-            except AttributeError:
-                pass
-            if (
-                value == 0 or value == '0' or
-                value == 'false' or value == 'f'
-            ):
-                return False
-            else:
-                return True
+            return value in [1, '1', 'True', 'true', 't']
         return False
 
     def _prepare_integer(self, field, value):
