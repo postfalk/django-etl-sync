@@ -497,3 +497,10 @@ class TestPreparations(TestCase):
         generator.get_instance()
         item = GeometryModel.objects.filter(name='testcase 2')[0]
         self.assertFalse(item.geom2d.hasz)
+        generator = InstanceGenerator(
+            GeometryModel, {'geom2d': None, 'geom3d': None,
+                            'name': 'emptytest'})
+        generator.get_instance()
+        item = GeometryModel.objects.filter(name='emptytest')[0]
+        self.assertFalse(item.geom2d)
+        self.assertFalse(item.geom3d)

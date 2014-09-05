@@ -289,14 +289,17 @@ class InstanceGenerator(BaseInstanceGenerator):
         Reduce geometry to two dimensions if models.GeometryField
         dim parameter does not request otherwise.
         """
-        # TODO: DO we need to add a 2d to 3d conversation filling z
-        # with 0?
+        # TODO: DO we need to add 2D to 3D conversation filling z
+        # with 0s or is this taken care of implicitely?
+        # (cannot be easily tested since 3d is not supported by
+        # spatialite backend in Django 1.6.)
         from django.contrib.gis.geos import WKBWriter, GEOSGeometry
         if isinstance(value, (str, unicode)):
             value = GEOSGeometry(value)
         wkb_writer = WKBWriter()
-        if value.hasz and field.dim == 2:
-            value = GEOSGeometry(wkb_writer.write(value))
+        if isinstance(value, GEOSGeometry):
+            if value.hasz and field.dim == 2:
+                value = GEOSGeometry(wkb_writer.write(value))
         return value
 
     preparations = {
