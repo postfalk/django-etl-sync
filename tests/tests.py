@@ -4,7 +4,8 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
-    Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel)
+    Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
+    DateTimeModel)
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
@@ -504,3 +505,22 @@ class TestPreparations(TestCase):
         item = GeometryModel.objects.filter(name='emptytest')[0]
         self.assertFalse(item.geom2d)
         self.assertFalse(item.geom3d)
+
+    def test_prepare_date(self):
+        generator = InstanceGenerator(
+            DateTimeModel,
+            {'datetimenotnull': '2014-10-14',
+             'datetimenull': '2014-10-14'})
+        generator.get_instance()
+        self.assertTrue(generator.res['created'])
+        generator = InstanceGenerator(
+            DateTimeModel,
+            {'datetimenotnull': '',
+             'datetimenull': '2014-10-14'})
+        self.assertRaises(ValidationError, generator.get_instance)
+        generator = InstanceGenerator(
+            DateTimeModel,
+            {'datetimenotnull': '2014-10-14',
+             'datetimenull': ''})
+        generator.get_instance()
+        self.assertTrue(generator.res['created'])

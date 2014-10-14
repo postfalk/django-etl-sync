@@ -90,3 +90,8 @@ class GeometryModel(models.Model):
     geom2d = models.GeometryField(null=True, blank=True)
     geom3d = models.GeometryField(null=True, blank=True, dim=3)
     objects = models.GeoManager()
+
+
+class DateTimeModel(models.Model):
+    datetimenotnull = models.DateTimeField()
+    datetimenull = models.DateTimeField(null=True, blank=True)

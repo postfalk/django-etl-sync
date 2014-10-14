@@ -251,7 +251,7 @@ class InstanceGenerator(BaseInstanceGenerator):
 
     def _prepare_date(self, field, value):
         if not (field.auto_now or field.auto_now_add):
-            formfield = DateTimeField()
+            formfield = DateTimeField(required=not field.null)
             return formfield.clean(value)
 
     def _prepare_text(self, field, value):
