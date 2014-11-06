@@ -48,7 +48,7 @@ class Transformer(object):
                     if re.match(v, dic[key]):
                         raise ValidationError(
                             'Value {} not allowed in field {}'.format(
-                                key, v))
+                                v, key))
                 except TypeError:
                     raise ValidationError(
                         'Black list test failed, check your blacklist.')
