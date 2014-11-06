@@ -44,10 +44,14 @@ class Transformer(object):
         black-listed."""
         for key, value in self.blacklist.iteritems():
             for v in value:
-                if re.match(v, dic[key]):
+                try:
+                    if re.match(v, dic[key]):
+                        raise ValidationError(
+                            'Value {} not allowed in field {}'.format(
+                                key, v))
+                except TypeError:
                     raise ValidationError(
-                        'Value {} not allowed in field {}'.format(
-                            key, v))
+                        'Black list test failed, check your blacklist.')
 
     def validate(self, dic):
         """Raise validation errors here."""
