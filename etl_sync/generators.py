@@ -181,6 +181,9 @@ class BaseInstanceGenerator(object):
             # updates work as well (as they should since they are treated
             # seperately)
             persistence_qs.update(**dic)
+            # add this here to make sure post_save signals are broadcasted
+            # TODO: can this be done more elegantly?
+            persistence_qs[0].save()
             self.res['exists'] = True
             self.res['updated'] = True
         else:
