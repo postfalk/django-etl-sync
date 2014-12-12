@@ -8,6 +8,7 @@ class TestModelWoFk(models.Model):
     record = models.CharField(max_length=10)
     name = models.CharField(max_length=10, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
+    date = models.DateTimeField(auto_now=True)
 
 
 class Nombre(models.Model):

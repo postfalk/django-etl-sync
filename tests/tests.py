@@ -457,6 +457,20 @@ class TestUpdate(TestCase):
         qs = SomeModel.objects.all()
         self.assertEqual(qs[0].lnames.all()[0].last_name, 'Deer')
 
+    def test_signals(self):
+        """Test whether auto_now=True fields get updated as well."""
+        dic = {'record': '1110'}
+        generator = InstanceGenerator(
+            TestModelWoFk, dic, persistence='record')
+        generator.get_instance()
+        date_1 = TestModelWoFk.objects.filter(record='1110')[0].date
+        dic = {'record': '1110', 'name': 'test'}
+        generator = InstanceGenerator(
+            TestModelWoFk, dic, persistence='record')
+        generator.get_instance()
+        qs = TestModelWoFk.objects.filter(record='1110')
+        self.assertLess(date_1, qs[0].date)
+
 
 class TestPreparations(TestCase):
 
