@@ -126,15 +126,19 @@ class Mapper(object):
     encoding = 'utf-8'
     slice_begin = None
     slice_end = None
+    # TODO: move defaults to Mapper class?
     defaults = {}
     create_new = True
     update = True
     create_foreign_key = True
+    # TODO: make this more generic
     etl_persistence = ['record']
     message = 'Data Extraction'
+    # TODO: return value instead of property?
     result = None
     feedbacksize = 5000
     logfile = None
+    # TODO: do we need both here?
     logfilename = None
     forms = []
 
