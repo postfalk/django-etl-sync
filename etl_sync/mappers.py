@@ -101,6 +101,7 @@ class FileReaderLogManager():
     def __enter__(self):
         self.file = open(self.filename, 'r')
         self.logfile = open(self.log, 'w')
+        print(self.reader_class)
         reader = self.reader_class(self.file, **self.reader_kwargs)
         reader.log = self._log
         return reader

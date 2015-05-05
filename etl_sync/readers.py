@@ -21,7 +21,8 @@ class ShapefileReader(object):
     of this project.
     """
 
-    def __init__(self, source, encoding='utf-8'):
+    def __init__(self, source, encoding='utf-8',
+                 delimiter='', quoting=''):
         if hasattr(source, 'name'):
             s = source.name
             source.close()
