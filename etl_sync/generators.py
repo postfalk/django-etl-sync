@@ -3,6 +3,7 @@ from __future__ import print_function
 from hashlib import md5
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.db.models.options import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField
 
@@ -325,7 +326,12 @@ class InstanceGenerator(BaseInstanceGenerator):
         for fieldname in fieldnames:
             if fieldname not in dic:
                 continue
-            field = model_instance._meta.get_field(fieldname)
+            try:
+                field = model_instance._meta.get_field(fieldname)
+            # this is a patch for different behavior in Django 1.7
+            # of get_field, TODO: rework for Django 1.8
+            except FieldDoesNotExist:
+                continue
             fieldtype = field.get_internal_type()
             try:
                 fieldvalue = self.preparations[fieldtype](
