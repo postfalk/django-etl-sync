@@ -104,7 +104,7 @@ class FileReaderLogManager():
             reader = self.reader(self.file)
         else:
             reader = csv.DictReader(
-                self.file, delimiter='\t', quoting=csv.QUOTE_NONE)
+                self.file, delimiter='\t', quoting=csv.QUOTE_NONE, dialect='excel-tab')
         reader.log = self._log
         return reader
 
