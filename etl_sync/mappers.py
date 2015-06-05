@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import warnings
-import unicodecsv as csv
+import csv
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, DatabaseError
@@ -12,7 +12,7 @@ from etl_sync.transformations import Transformer
 
 class FeedbackCounter(object):
     """
-    Keeps track of the etl process and provides feedback.
+    Keeps track of the ETL process and provides feedback.
     """
 
     def __init__(self, message=None, feedbacksize=5000, counter=0):
@@ -82,11 +82,12 @@ class FileReaderLogManager():
     Context manager that creates the reader and handles files.
     """
 
-    def __init__(self, filename, logname=None,
-                 reader_class=None, encoding=None):
+    def __init__(self, filename, logname=None, reader_class=None,
+                 reader_kwargs = {}, encoding=None):
         self.filename = filename
         self.log = logname
-        self.reader = reader_class
+        self.reader_class = reader_class
+        self.reader_kwargs = reader_kwargs
         self.encoding = encoding
         self.file = None
         self.logfile = None
@@ -100,11 +101,8 @@ class FileReaderLogManager():
     def __enter__(self):
         self.file = open(self.filename, 'r')
         self.logfile = open(self.log, 'w')
-        if self.reader:
-            reader = self.reader(self.file)
-        else:
-            reader = csv.DictReader(
-                self.file, delimiter='\t', quoting=csv.QUOTE_NONE)
+        print(self.reader_class)
+        reader = self.reader_class(self.file, **self.reader_kwargs)
         reader.log = self._log
         return reader
 
@@ -120,24 +118,28 @@ class Mapper(object):
     """
     Generic mapper object for ETL.
     """
-    # TODO: Create reader_class for file formats others
-    # than tab-delimited CSV.
-    reader_class = None
+    reader_class = csv.DictReader
+    # TODO: make this more elegant
+    reader_kwargs = {'delimiter': '\t', 'quoting': csv.QUOTE_NONE}
     transformer_class = Transformer
     model_class = None
     filename = None
     encoding = 'utf-8'
     slice_begin = None
     slice_end = None
+    # TODO: move defaults to Mapper class?
     defaults = {}
     create_new = True
     update = True
     create_foreign_key = True
+    # TODO: make this more generic
     etl_persistence = ['record']
     message = 'Data Extraction'
+    # TODO: return value instead of property?
     result = None
     feedbacksize = 5000
     logfile = None
+    # TODO: do we need both here?
     logfilename = None
     forms = []
 
@@ -169,6 +171,7 @@ class Mapper(object):
         with FileReaderLogManager(self.filename,
                                   logname=self.logfilename,
                                   reader_class=self.reader_class,
+                                  reader_kwargs=self.reader_kwargs,
                                   encoding=self.encoding) as reader:
             reader.log(
                 'Data extraction started {0}\n\nStart line: '
