@@ -13,6 +13,7 @@ before_install:
 env:
 # - DJANGO_VERSION=1.5.5
  - DJANGO_VERSION=1.6.5
+ - DJANGO_VERSION=1.7
 virtualenv:
  system_site_packages: true
 install: 
