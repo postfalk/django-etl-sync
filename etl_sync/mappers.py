@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import warnings
-import csv
+import unicodecsv as csv
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, DatabaseError
