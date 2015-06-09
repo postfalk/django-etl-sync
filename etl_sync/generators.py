@@ -334,9 +334,13 @@ class InstanceGenerator(BaseInstanceGenerator):
                 fieldvalue = dic[fieldname]
             try:
                 setattr(model_instance, fieldname, fieldvalue)
+            # TODO: more thoroughly explore cases where these exceptions are
+            # necessary
             except AttributeError:
                 pass
             except ValueError:
+                pass
+            except TypeError:
                 pass
         return model_instance
 
