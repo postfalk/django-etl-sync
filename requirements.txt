@@ -1,0 +1,6 @@
+# use with appropriate CFLAGS for GDAL header files
+# e.g. Ubuntu: CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
+
+django==1.8.3
+unicodecsv
+GDAL==1.9
