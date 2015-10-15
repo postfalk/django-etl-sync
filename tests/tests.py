@@ -7,7 +7,7 @@ from models import (
     Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
     DateTimeModel)
 from etl_sync.generators import (
-    BaseInstanceGenerator, InstanceGenerator, get_unambigous_field)
+    BaseInstanceGenerator, InstanceGenerator, get_unambiguous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.readers import unicode_dic, ShapefileReader
 from etl_sync.transformations import Transformer
@@ -343,8 +343,8 @@ class TestFeedbackCounter(TestCase):
 
 class TestFunctions(TestCase):
 
-    def test_get_umabigous_field(self):
-        self.assertEqual(get_unambigous_field(Numero), 'name')
+    def test_get_umabiguous_field(self):
+        self.assertEqual(get_unambiguous_field(Numero), 'name')
 
 
 class TestTransformer(TestCase):

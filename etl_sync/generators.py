@@ -9,7 +9,9 @@ from django.forms import DateTimeField
 
 
 def get_unique_fields(model_class):
-    """Get model fields with unique=True."""
+    """
+    Return model fields with unique=True.
+    """
     ret = []
     for field in model_class._meta.fields:
         if field.unique and not field.name == 'id':
@@ -17,9 +19,11 @@ def get_unique_fields(model_class):
     return ret
 
 
-def get_unambigous_field(model_class):
-    """Checks whether there is a way to match a string to a
-    field in ForeignKey model. Use 'name' as default."""
+def get_unambiguous_field(model_class):
+    """
+    Returns unambiguous field from model.
+    Use 'name' as default.
+    """
     ct_char = 0
     ct_uniquechar = 0
     for f in model_class._meta.fields:
@@ -44,79 +48,74 @@ def get_unambigous_field(model_class):
 
 
 class BaseInstanceGenerator(object):
-    """Generates, evaluates, and saves instances from dictionary
-    or object."""
+    """
+    Generates, evaluates, and saves instances from dictionary
+    or object.
+    """
     hashfield = 'md5'
+    do_not_hash_fields = ['id', 'last_modified']
 
-    def __init__(self, model_class, dic, persistence=None,
-                 create_foreign_key=True, save=True, update=True,
-                 create=True):
-        """Set options from kwargs and dic params."""
+    def __init__(self, model_class, dic, **kwargs):
+        """
+        Set options from kwargs and dictionary items.
+        """
         self.model_class = model_class
         self.dic = dic or {}
-        self.persistence = persistence
-        self.create_foreign_key = create_foreign_key
-        self.save = save
-        self.update = update
-        self.create = create
+        self.persistence = kwargs.pop('persistence', [])
+        self.create_foreign_key = kwargs.pop(
+            'create_foreign_key', True)
+        self.save = kwargs.pop('save', True)
+        self.update = kwargs.pop('update', True)
+        self.create = kwargs.pop('create', True)
         self.res = {'updated': False, 'created': False, 'exists': False}
+        # overwrite defaults by values in nested dictionary
+        # otherwise inherit from parents
         if isinstance(dic, dict):
-            if 'etl_persistence' in dic:
-                self.persistence = dic['etl_persistence']
-                del dic['etl_persistence']
-            if 'etl_create' in dic:
-                self.create = dic['etl_create']
-                del dic['etl_create']
-        if self.persistence and not isinstance(self.persistence, list):
+            self.persistence = dic.pop('etl_persistence', self.persistence)
+            self.create = dic.pop('etl_create', self.create)
+        if not isinstance(self.persistence, list):
             self.persistence = [self.persistence]
         self.related_instances = {}
 
     def hash_instance(self, instance):
-        """Method for hashing."""
-        fields = instance._meta.fields
+        """
+        Returns for hash. Override if you like.
+        """
         out = u''
-        for field in fields:
-            if field.name not in [self.hashfield, u'id', u'last_modified']:
-                try:
-                    value = unicode(getattr(instance, field.name))
-                except (TypeError, Exception):
-                    pass
-                else:
-                    if value:
-                        out = out + value
-        ret = md5(out.encode('utf-8')).hexdigest()
-        return ret
+        for field in instance._meta.fields:
+            if field.name not in [self.hashfield] + self.do_not_hash_fields:
+                value = unicode(getattr(instance, field.name, ''))
+                out += value
+        return md5(out.encode('utf-8')).hexdigest()
 
     def _check_hash(self, instance, field):
         count = 0
         qs = []
         if hasattr(instance, field):
             value = self.hash_instance(instance)
-            qs = self.model_class.objects.filter(
-                **{field: value})
+            qs = self.model_class.objects.filter(**{field: value})
             setattr(instance, field, value)
             count = qs.count()
         return count, qs
 
     def _get_persistence_query(self, model_instance, persistence):
-        """Get query to determine whether record already exists
-        depending on persistence definition."""
+        """
+        Returns query to determine whether record already exists
+        depending on persistence definition.
+        """
         query = Q()
         for fieldname in persistence:
-            try:
-                value = getattr(model_instance, fieldname)
-            except AttributeError:
-                pass
-            else:
-                if value:
-                    query = query & Q(
-                        **{fieldname: value})
+            value = getattr(model_instance, fieldname, None)
+            if value:
+                query = query & Q(**{fieldname: value})
         return self.model_class.objects.filter(query)
 
     def _check_persistence(self, instance, persistence):
-        """Returns the number of records that fulfill the
+        """
+        Returns the number of records fulfilling the
         persistence criterion and the queryset resulting from
-        the application of the persistence criterion."""
+        the application of the persistence criterion.
+        """
         if not persistence:
             unique_fields = get_unique_fields(instance)
             if unique_fields:
@@ -127,10 +126,12 @@ class BaseInstanceGenerator(object):
         return qs.count(), qs
 
     def _assign_related(self, instance, rel_inst_dic, dic={}):
-        """Assign related instances after saving the parent
+        """
+        Assign related instances after saving the parent
         record. The instances should be fully prepared and
         clean at this point. Use the original dic to fill
-        in intermediate relationship."""
+        in intermediate relationships.
+        """
         for key, lst in rel_inst_dic.iteritems():
             field = getattr(instance, key)
             try:
@@ -148,31 +149,26 @@ class BaseInstanceGenerator(object):
                             field.source_field_name, field.target_field_name],
                         create_foreign_key=False)
                     generator.get_instance()
-            except ValueError:
-                print('issue with assignment of related instances')
-                # TODO: explore while lst can be None
-                pass
 
     def create_in_db(self, instance, persistence_qs):
-        """Creates entry in DB."""
+        """
+        Creates new entry in database.
+        """
         if self.create:
             instance.clean_fields()
             instance.save()
             self.res['created'] = True
             return instance
-        else:
-            pass
-            # TODO: fix error handling
-            # raise ValidationError(
-            #   'Record does not exists and create flag is False')
 
     def update_in_db(self, instance, persistence_qs):
+        """
+        Update in database.
+        """
         if self.update:
             dic = model_to_dict(instance)
             for key in dic.copy():
                 field_type = instance._meta.get_field(
                     key).get_internal_type()
-                # TODO make this more elegant
                 if (
                     field_type == 'ManyToManyField' or
                     key not in self.dic and
@@ -181,26 +177,27 @@ class BaseInstanceGenerator(object):
                     del dic[key]
             # see whether that suits us here, check whether M2M field
             # updates work as well (as they should since they are treated
-            # seperately)
+            # separately)
             persistence_qs.update(**dic)
             # add this here to make sure post_save signals are broadcasted
-            # TODO: can this be done more elegantly?
             persistence_qs[0].save()
-            self.res['exists'] = True
             self.res['updated'] = True
-        else:
-            self.res['exists'] = True
+        self.res['exists'] = True
         return persistence_qs[0]
 
     def prepare(self, dic):
-        """Basic dictionary to model conversion. Works only for models
-        without relational field types. Subclass and extend method for
-        more complicated preparations."""
+        """
+        Basic dictionary to model conversion. Works only for models
+        without relational fields. Override this method for
+        more complicated preparations.
+        """
         return self.model_class(**dic)
 
     def get_instance(self):
-        """Create or get instance, add it to the database,
-        and create relationships."""
+        """
+        Creates and/or returns instance, adds it to the database, and creates
+        relationships.
+        """
         model_instance = self.prepare(self.dic)
         self.res = {'updated': False, 'created': False, 'exists': False}
         if model_instance:
@@ -225,7 +222,7 @@ class BaseInstanceGenerator(object):
                     # Add error handling.
                     string = ''
                     for key in self.persistence:
-                        string = string + ', ' + key
+                        string += ', ' + key
                     print('Double entry found for {}'.format(string))
                     return model_instance
             self._assign_related(
@@ -234,8 +231,10 @@ class BaseInstanceGenerator(object):
 
 
 class InstanceGenerator(BaseInstanceGenerator):
-    """Instance generator that can take care of foreign key and many-to-many-
-    relationships as well as deal with other field attributes."""
+    """
+    Instance generator that can take care of foreign key and many-to-many-
+    relationships as well as deal with other field attributes.
+    """
 
     def _prepare_field(self, field, value):
         return value
@@ -274,12 +273,13 @@ class InstanceGenerator(BaseInstanceGenerator):
         return False
 
     def _prepare_integer(self, field, value):
-        if not isinstance(value, int):
+        if isinstance(value, int):
+            return value
+        else:
             try:
                 return int(value)
             except (ValueError, TypeError):
-                return None
-        return value
+                pass
 
     def _prepare_float(self, field, value):
         if not isinstance(value, float):
@@ -292,12 +292,8 @@ class InstanceGenerator(BaseInstanceGenerator):
     def _prepare_geometry(self, field, value):
         """
         Reduce geometry to two dimensions if models.GeometryField
-        dim parameter does not request otherwise.
+        dim parameter is not set otherwise.
         """
-        # TODO: DO we need to add 2D to 3D conversation filling z
-        # with 0s or is this taken care of implicitely?
-        # (cannot be easily tested since 3d is not supported by
-        # spatialite backend in Django 1.6.)
         from django.contrib.gis.geos import WKBWriter, GEOSGeometry
         if isinstance(value, (str, unicode)):
             value = GEOSGeometry(value)
@@ -353,7 +349,9 @@ class InstanceGenerator(BaseInstanceGenerator):
 
 
 class RelInstanceGenerator(InstanceGenerator):
-    """Prepares related instances in M2M relationships."""
+    """
+    Prepares related instances in M2M relationships.
+    """
 
     def __init__(self, field, dic, **kwargs):
         super(RelInstanceGenerator, self).__init__(None, dic, **kwargs)
@@ -361,41 +359,38 @@ class RelInstanceGenerator(InstanceGenerator):
 
 
 class FkInstanceGenerator(RelInstanceGenerator):
-    """Prepares ForeignKey instances. Order of tests:
-    1. Instance, 2. Dictionary, 3. Integer,
-    4. Unique name or single field"""
+    """
+    Prepares ForeignKey instances. Order of assignment attempts: 1. Instance,
+    2. Dictionary, 3. Integer, 4. Unique name or single field
+    """
 
     def __init__(self, field, dic, **kwargs):
         super(FkInstanceGenerator, self).__init__(field, dic, **kwargs)
         self.field = field
         self.related_field = field.rel.field_name
-        self.update = False
         try:
-            self.update = dic.get('etl_update')
+            self.update = dic.pop('etl_update', False)
         except(AttributeError):
-            pass
+            self.update = False
 
     def prepare(self, value):
-        if not value:
-            return None
-        if isinstance(value, self.model_class):
-            return value
-        else:
+        if value:
+            if isinstance(value, self.model_class):
+                return value
             if isinstance(value, dict):
-                key = get_unambigous_field(self.model_class)
-                fk_dic = value
-                if key in fk_dic and self.related_field == 'id':
+                key = get_unambiguous_field(self.model_class)
+                if key in value and self.related_field == 'id':
                     self.persistence = [key]
+                fk_dic = value
             elif isinstance(value, int):
                 fk_dic = {self.related_field: value}
                 self.persistence = [self.related_field]
             else:
-                key = get_unambigous_field(self.model_class)
+                key = get_unambiguous_field(self.model_class)
                 if self.related_field == 'id':
                     fk_dic = {key: value}
                     self.persistence = [key]
                 else:
                     fk_dic = {self.related_field: value}
                     self.persistence = [self.related_field]
-            ret = super(FkInstanceGenerator, self).prepare(fk_dic)
-        return ret
+            return super(FkInstanceGenerator, self).prepare(fk_dic)
