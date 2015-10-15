@@ -1,4 +1,7 @@
-"""Classes that generate model instances from dictionaries."""
+"""
+Classes for the generation of model instances from dictionaries.
+"""
+
 from __future__ import print_function
 from hashlib import md5
 from django.core.exceptions import ValidationError
@@ -21,8 +24,10 @@ def get_unique_fields(model_class):
 
 def get_unambiguous_field(model_class):
     """
-    Returns unambiguous field from model.
-    Use 'name' as default.
+    Returns unambiguous field from Fk model. Uses 'name' as default.
+    This will be only successful ifvthere is ONLY one single CharField
+    or only one unique CharField. All other cases must be specified in
+    more detail.
     """
     ct_char = 0
     ct_uniquechar = 0
@@ -44,7 +49,7 @@ def get_unambiguous_field(model_class):
     if ct_uniquechar == 1:
         return uniquecharfield
     raise ValidationError(
-        'Fk field cannot be assigned for {}'.format(model_class))
+        'Failure to identify single ForeignKey for {}'.format(model_class))
 
 
 class BaseInstanceGenerator(object):
