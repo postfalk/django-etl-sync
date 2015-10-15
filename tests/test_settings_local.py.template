@@ -1,0 +1,12 @@
+from .test_settings import *
+
+LOCAL_SETTINGS = True
+DEBUG = True
+
+# required on MacOSX
+# read
+#
+# https://github.com/ghaering/pysqlite/issues/60
+#
+# for successful virtualenv installation
+SPATIALITE_LIBRARY_PATH='/usr/local/lib/mod_spatialite.dylib'
