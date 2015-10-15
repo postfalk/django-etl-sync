@@ -159,11 +159,12 @@ class BaseInstanceGenerator(object):
             instance.clean_fields()
             instance.save()
             self.res['created'] = True
-        return instance
-        # TODO: work on error handling
-        # else:
-        #    raise ValidationError(
-        #       'Record does not exists and create flag is False')
+            return instance
+        else:
+            pass
+            # TODO: fix error handling
+            # raise ValidationError(
+            #   'Record does not exists and create flag is False')
 
     def update_in_db(self, instance, persistence_qs):
         if self.update:

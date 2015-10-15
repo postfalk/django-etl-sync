@@ -85,9 +85,11 @@ class TestModule(TestCase):
 
     def test_fk_rejection(self):
         dics = [
+            # nombre example with fk that allows None
             {'record': '1', 'name': 'one', 'zahl': 'eins',
                 'nombre': {'name': 'un', 'etl_create': False},
              'numero': 'quattre', 'expect': True},
+            # numero example with fk that does not allow None
             {'record': '2', 'name': 'two', 'zahl': 'eins',
                 'numero': {'name': 'uno', 'etl_create': False},
              'expect': False}
@@ -99,8 +101,6 @@ class TestModule(TestCase):
             else:
                 self.assertRaises(ValidationError, generator.get_instance)
             result = generator.res
-        # nombre example with fk that allows None
-        # numero example with fk that does not allow None
         self.assertEqual(result['created'], False)
         self.assertEqual(result['updated'], False)
         self.assertEqual(Nombre.objects.all().count(), 0)
