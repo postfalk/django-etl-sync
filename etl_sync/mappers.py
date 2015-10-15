@@ -10,6 +10,13 @@ from etl_sync.generators import InstanceGenerator
 from etl_sync.transformations import Transformer
 
 
+def get_logfilename(filename):
+    if filename:
+        return os.path.join(
+            os.path.dirname(filename), '{0}.{1}.log'.format(
+            filename, datetime.now().strftime('%Y-%m-%d')))
+
+
 class FeedbackCounter(object):
     """
     Keeps track of the ETL process and provides feedback.
@@ -48,12 +55,12 @@ class FeedbackCounter(object):
         self.increment()
 
     def create(self):
-        self.increment()
         self.created += 1
+        self.increment()
 
     def update(self):
-        self.increment()
         self.updated += 1
+        self.increment()
 
     def use_result(self, res):
         """
@@ -119,7 +126,6 @@ class Mapper(object):
     Generic mapper object for ETL.
     """
     reader_class = csv.DictReader
-    # TODO: make this more elegant
     reader_kwargs = {'delimiter': '\t', 'quoting': csv.QUOTE_NONE}
     transformer_class = Transformer
     model_class = None
@@ -127,39 +133,31 @@ class Mapper(object):
     encoding = 'utf-8'
     slice_begin = None
     slice_end = None
-    # TODO: move defaults to Mapper class?
     defaults = {}
     create_new = True
     update = True
     create_foreign_key = True
-    # TODO: make this more generic
     etl_persistence = ['record']
     message = 'Data Extraction'
-    # TODO: return value instead of property?
     result = None
     feedbacksize = 5000
     logfile = None
-    # TODO: do we need both here?
     logfilename = None
     forms = []
 
     def __init__(self, *args, **kwargs):
         for k in kwargs:
-            if hasattr(self, k):
+            try:
                 setattr(self, k, kwargs[k])
-            else:
+            except AttributeError:
                 warnings.warn(
                     'Invalid keyword argument for Mapper will be ignored.')
-        if hasattr(settings, 'ETL_FEEDBACK'):
-            self.feedbacksize = settings.ETL_FEEDBACK
-        if self.filename:
-            self.logfilename = os.path.join(
-                os.path.dirname(self.filename), '{0}.{1}.log'.format(
-                    self.filename, datetime.now().strftime('%Y-%m-%d')))
+        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
+        self.logfilename = get_logfilename(self.filename)
 
     def _log(self, text):
         """
-        Log to logfile or to stdout if self.logfile=None
+        Log to log file or to stdout if self.logfile=None
         """
         print(text, file=self.logfile)
 
