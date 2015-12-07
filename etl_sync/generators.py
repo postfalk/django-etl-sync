@@ -317,6 +317,7 @@ class InstanceGenerator(BaseInstanceGenerator):
         'TextField': _prepare_text,
         'BooleanField': _prepare_boolean,
         'IntegerField': _prepare_integer,
+        'BigIntegerField': _prepare_integer,
         'FloatField': _prepare_float
     }
 
