@@ -60,6 +60,21 @@ class TestModel(models.Model):
     date = models.DateTimeField(null=True, blank=True)
 
 
+class TestOnetoOneModel(models.Model):
+    """
+    Model for Unit tests.
+    """
+    record = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=10, null=True, blank=True)
+    zahl = models.CharField(max_length=10, null=True, blank=True)
+    nombre = models.OneToOneField(Nombre, null=True, blank=True)
+    numero = models.ForeignKey(Numero)
+    elnumero = models.ForeignKey(
+        ElNumero, to_field='rec', null=True, blank=True)
+    related = models.ManyToManyField(Polish, null=True, blank=True)
+    date = models.DateTimeField(null=True, blank=True)
+
+
 class HashTestModel(models.Model):
     record = models.CharField(max_length=10)
     numero = models.ForeignKey(Numero, null=True, blank=True)
