@@ -310,6 +310,7 @@ class InstanceGenerator(BaseInstanceGenerator):
 
     preparations = {
         'ForeignKey': _prepare_fk,
+        'OneToOneField': _prepare_fk,
         'ManyToManyField': _prepare_m2m,
         'DateTimeField': _prepare_date,
         'GeometryField': _prepare_geometry,
@@ -317,6 +318,7 @@ class InstanceGenerator(BaseInstanceGenerator):
         'TextField': _prepare_text,
         'BooleanField': _prepare_boolean,
         'IntegerField': _prepare_integer,
+        'BigIntegerField': _prepare_integer,
         'FloatField': _prepare_float
     }
 

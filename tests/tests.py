@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
     Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
-    DateTimeModel)
+    DateTimeModel, TestOnetoOneModel)
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambiguous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
@@ -157,6 +157,40 @@ class TestModule(TestCase):
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(len(res.filter(record='1')[0].related.values()), 2)
+
+    def test_onetoone(self):
+        ins = Nombre(name='un')
+        dos = Nombre(name='dos')
+        dics = [
+            {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': ins,
+             'numero': 'uno'},
+            {'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
+             'numero': 'due'},
+            {'record': '3', 'name': 'three', 'zahl': 'drei', 'nombre':
+             {'name': 'troix'}, 'numero': 'tre'},
+            {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
+             'numero': 'quattro'},
+            {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
+             'nombre': dos, 'numero': 'cinque'},
+            {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
+             'numero': 'test'},
+            {'record': '5', 'name': 'six', 'zahl': 'sechs', 'numero': 2},
+            {'record': '6', 'name': 'six', 'zahl': 'sechs', 'numero': '45',
+             'nombre': '2'},
+            {'record': '7', 'name': 'test', 'numero': '1'}
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(TestOnetoOneModel, dic, persistence='record')
+            generator.get_instance()
+        res = Nombre.objects.all()
+        self.assertEqual(res.count(), 5)
+        res = TestOnetoOneModel.objects.all()
+        self.assertEqual(res.count(), 7)
+        rec1 = res.filter(record='1')[0]
+        self.assertEqual(rec1.nombre.name, 'dos')
+        #OneToOneField has the related object as a property
+        self.assertEqual(rec1.nombre.testonetoonemodel, rec1)
+        res.delete()
 
     def test_validation(self):
         dics = [{'record': '30', 'date': '3333', 'numero': 'uno'}]
@@ -538,3 +572,4 @@ class TestPreparations(TestCase):
              'datetimenull': ''})
         generator.get_instance()
         self.assertTrue(generator.res['created'])
+
