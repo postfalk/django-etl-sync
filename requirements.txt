@@ -4,3 +4,5 @@
 django==1.8.5
 unicodecsv==0.14.1
 GDAL==1.9
+six==1.10
+future==0.15.2

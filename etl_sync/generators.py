@@ -3,9 +3,13 @@ Classes for the generation of model instances from dictionaries.
 """
 
 from __future__ import print_function
+from six import text_type, binary_type
+from builtins import str as text
+from future.utils import iteritems
+
 from hashlib import md5
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Q, Model
 from django.db.models.options import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField
@@ -84,13 +88,15 @@ class BaseInstanceGenerator(object):
 
     def hash_instance(self, instance):
         """
-        Returns for hash. Override if you like.
+        Hash extracted dictionary. Override if you like.
         """
         out = u''
         for field in instance._meta.fields:
             if field.name not in [self.hashfield] + self.do_not_hash_fields:
-                value = unicode(getattr(instance, field.name, ''))
-                out += value
+                value = getattr(instance, field.name, '')
+                if isinstance(value, Model):
+                    value = value.pk
+                out += text(value)
         return md5(out.encode('utf-8')).hexdigest()
 
     def _check_hash(self, instance, field):
@@ -137,7 +143,7 @@ class BaseInstanceGenerator(object):
         clean at this point. Use the original dic to fill
         in intermediate relationships.
         """
-        for key, lst in rel_inst_dic.iteritems():
+        for (key, lst) in iteritems(rel_inst_dic):
             field = getattr(instance, key)
             try:
                 field.add(*lst)
@@ -264,8 +270,8 @@ class InstanceGenerator(BaseInstanceGenerator):
             return formfield.clean(value)
 
     def _prepare_text(self, field, value):
-        if not isinstance(value, (str, unicode)):
-            ret = unicode(value)
+        if not isinstance(value, (text_type, binary_type)):
+            ret = text(value)
         else:
             ret = value
         if hasattr(field, 'max_length'):
@@ -300,7 +306,7 @@ class InstanceGenerator(BaseInstanceGenerator):
         dim parameter is not set otherwise.
         """
         from django.contrib.gis.geos import WKBWriter, GEOSGeometry
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, (str, text_type)):
             value = GEOSGeometry(value)
         wkb_writer = WKBWriter()
         if isinstance(value, GEOSGeometry):

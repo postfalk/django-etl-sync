@@ -1,3 +1,5 @@
+from future.utils import iteritems
+
 import re
 from django.core.exceptions import ValidationError
 
@@ -36,13 +38,13 @@ class Transformer(object):
             dic = self.defaults.copy()
         else:
             dic = {}
-        dic = dict(dic.items() + dictionary.items())
-        return dic
+        dictionary.update(dic)
+        return dictionary
 
     def check_blacklist(self, dic):
         """Raise ValidationError if value or pattern is
         black-listed."""
-        for key, value in self.blacklist.iteritems():
+        for key, value in iteritems(self.blacklist):
             for v in value:
                 try:
                     if re.match(v, dic[key]):
@@ -87,6 +89,6 @@ class Transformer(object):
         try:
             self.cleaned_data = self.clean(self.dic)
             return True
-        except (ValidationError, UnicodeEncodeError), e:
+        except (ValidationError, UnicodeEncodeError) as e:
             self.error = e
             return False

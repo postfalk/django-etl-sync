@@ -1,7 +1,10 @@
 from __future__ import print_function
+from backports import csv
+from io import open
+from builtins import str as text
+
 import os
 import warnings
-import unicodecsv as csv
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, DatabaseError
@@ -99,16 +102,15 @@ class FileReaderLogManager():
         self.file = None
         self.logfile = None
 
-    def _log(self, text):
+    def _log(self, tex):
         """
         Log to logfile or to stdout if self.logfile=None
         """
-        print(text, file=self.logfile)
+        print(text(tex), file=self.logfile)
 
     def __enter__(self):
         self.file = open(self.filename, 'r')
         self.logfile = open(self.log, 'w')
-        print(self.reader_class)
         reader = self.reader_class(self.file, **self.reader_kwargs)
         reader.log = self._log
         return reader
@@ -126,12 +128,12 @@ class Mapper(object):
     Generic mapper object for ETL.
     """
     reader_class = csv.DictReader
-    reader_kwargs = {'delimiter': '\t', 'quoting': csv.QUOTE_NONE}
+    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     transformer_class = Transformer
     model_class = None
     filename = None
     encoding = 'utf-8'
-    slice_begin = None
+    slice_begin = 0
     slice_end = None
     defaults = {}
     create_new = True
@@ -213,7 +215,7 @@ class Mapper(object):
                     persistence=self.etl_persistence)
                 try:
                     generator.get_instance()
-                except (ValidationError, IntegrityError, DatabaseError), e:
+                except (ValidationError, IntegrityError, DatabaseError) as e:
                     reader.log('Error in line {0}: {1} => rejected'.format(
                         counter.counter, str(e)))
                     counter.reject()

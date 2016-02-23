@@ -1,6 +1,10 @@
 """
 Reader classes for ETL.
 """
+from future.utils import iteritems
+from builtins import str as text
+from six import text_type, binary_type
+
 from osgeo import osr, ogr
 
 
@@ -8,17 +12,16 @@ def unicode_dic(dic, encoding):
     """
     Decodes entire dictionary with given encoding.
     """
-    for key, value in dic.iteritems():
-        if isinstance(value, str):
-            dic[key] = unicode(value, encoding)
+    for key, value in iteritems(dic):
+        if isinstance(value, bytes):
+            dic[key] = value.decode(encoding)
     return dic
 
 
 class ShapefileReader(object):
     """
-    ShapefileReader reads ESRI shape files and is partially
-    compatible with csv.DictReader (currently only within the context
-    of this project.
+    ShapefileReader reads ESRI shape files and is partially (duck-typed)
+    compatible with csv.DictReader.
     """
 
     def __init__(self, source, encoding='utf-8',

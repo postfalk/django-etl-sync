@@ -1,8 +1,10 @@
+from __future__ import print_function, absolute_import
+
 import os
 import glob
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from models import (
+from tests.models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
     Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
     DateTimeModel, TestOnetoOneModel)
@@ -226,7 +228,7 @@ class TestModule(TestCase):
             try:
                 generator.get_instance()
             except:
-                print dic
+                print(dic)
         res = HashTestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(res.filter(record='40')[0].numero.name, 'due')
@@ -238,7 +240,7 @@ class TestModule(TestCase):
                 {'record': 40, 'numero': 'uno'},
                 {'record': 40, 'numero': 'due'},
                 {'record': 43, 'numero': 'tres',
-                    'related': [
+                   'related': [
                         {'record': '10', 'ilosc': 'jedynka zero'},
                         {'record': '21', 'ilosc': 'dwadziescia jeden'}
                     ]},
@@ -337,7 +339,7 @@ class TestReaders(TestCase):
 
     def test_dic_decoder(self):
         testdic = {
-            'word': 'testword', 'number': 68898, 'utf8': 'testing\xc2\xa0'
+            'word': b'testword', 'number': 68898, 'utf8': b'testing\xc2\xa0'
         }
         dic = unicode_dic(testdic, 'utf-8')
         self.assertEqual(dic['utf8'], u'testing\xa0')

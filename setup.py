@@ -16,7 +16,7 @@ setup(
     url='https://github.com/postfalk/django-etl-sync.git',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
-    install_requires=['unicodecsv'],
+    install_requires=['unicodecsv', 'future', 'six'],
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
