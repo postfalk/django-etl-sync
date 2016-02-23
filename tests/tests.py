@@ -1,4 +1,6 @@
 from __future__ import print_function, absolute_import
+from six import text_type
+from future.utils import iteritems
 
 import os
 import glob
@@ -320,16 +322,14 @@ class TestLoad(TestCase):
     def tearDown(self):
         path = os.path.dirname(os.path.realpath(__file__))
         files = glob.glob('%s/data.txt.*.log' % path)
-        for fil in files:
-            os.remove(fil)
+        (os.remove(fil) for fil in files)
 
     def test_load_from_file(self):
         path = os.path.dirname(os.path.realpath(__file__))
         filename = '{0}/data.txt'.format(path)
         mapper = Mapper(filename=filename, model_class=TestModel)
         mapper.load()
-        res = TestModel.objects.all()
-        self.assertEqual(res.count(), 3)
+        self.assertEqual(TestModel.objects.all().count(), 3)
 
 
 class TestReaders(TestCase):
@@ -339,10 +339,11 @@ class TestReaders(TestCase):
 
     def test_dic_decoder(self):
         testdic = {
-            'word': b'testword', 'number': 68898, 'utf8': b'testing\xc2\xa0'
-        }
+            'word': b'testword', 'number': 68898, 'utf8': b'testing\xc2\xa0'}
         dic = unicode_dic(testdic, 'utf-8')
         self.assertEqual(dic['utf8'], u'testing\xa0')
+        for k, v in iteritems(dic):
+            self.assertIsInstance(k, text_type)
 
     def test_shapefile_reader(self):
         path = os.path.dirname(os.path.realpath(__file__))
@@ -574,4 +575,3 @@ class TestPreparations(TestCase):
              'datetimenull': ''})
         generator.get_instance()
         self.assertTrue(generator.res['created'])
-
