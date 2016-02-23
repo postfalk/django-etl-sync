@@ -3,7 +3,6 @@ python:
  - "2.7"
  - "3.5"
 before_install:
- - "bash"
  - "sudo apt-get update -qq -y "
  - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev"
  - "wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.6.3.tar.gz"
@@ -13,7 +12,6 @@ before_install:
  - "sudo python setup.py install"
  - "cd .."
 env:
-# - DJANGO_VERSION=1.5.5
  - DJANGO_VERSION=1.6.5
  - DJANGO_VERSION=1.7
  - DJANGO_VERSION=1.8.3
@@ -26,7 +24,7 @@ install:
  - CFLAGS=-I/usr/include/gdal pip install GDAL
  - pip install coveralls
  - pip install Django==$DJANGO_VERSION
- - pip install -r /postfalk/django-etl/requirements.txt
+ - python setup.py -q install
 script:
     coverage run --source etl_sync runtests.py
 after_success:
