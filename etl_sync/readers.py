@@ -4,7 +4,6 @@ from future.utils import iteritems
 
 from osgeo import osr, ogr
 
-
 def unicode_dic(dic, encoding):
     """
     Decodes bytes dictionary to unicode with given encoding.
