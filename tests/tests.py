@@ -349,9 +349,9 @@ class TestReaders(TestCase):
         testfilename = os.path.join(path, 'test_shapefile.shp')
         reader = ShapefileReader(testfilename)
         dic = reader.next()
-        self.assertEqual(dic['text'], 'three')
+        self.assertEqual(dic['text'], u'three')
         dic = reader.next()
-        self.assertEqual(dic['text'], 'two')
+        self.assertEqual(dic['text'], u'two')
 
 
 class TestFeedbackCounter(TestCase):

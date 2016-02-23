@@ -99,7 +99,7 @@ class FileReaderLogManager():
         self.reader_class = reader_class
         self.reader_kwargs = reader_kwargs
         self.encoding = encoding
-        self.file = None
+        self.fil = None
         self.logfile = None
 
     def _log(self, tex):
@@ -109,14 +109,14 @@ class FileReaderLogManager():
         print(text(tex), file=self.logfile)
 
     def __enter__(self):
-        self.file = open(self.filename, 'r')
+        self.fil = open(self.filename, 'r')
         self.logfile = open(self.log, 'w')
-        reader = self.reader_class(self.file, **self.reader_kwargs)
+        reader = self.reader_class(self.fil, **self.reader_kwargs)
         reader.log = self._log
         return reader
 
     def __exit__(self, type, value, traceback):
-        for filehandle in [self.file, self.logfile]:
+        for filehandle in [self.fil, self.logfile]:
             try:
                 filehandle.close()
             except (AttributeError, IOError):

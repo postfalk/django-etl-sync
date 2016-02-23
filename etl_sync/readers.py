@@ -1,21 +1,22 @@
-"""
-Reader classes for ETL.
-"""
+# Python 3 compatibility
+from __future__ import print_function
 from future.utils import iteritems
-from builtins import str as text
-from six import text_type, binary_type
 
 from osgeo import osr, ogr
 
 
 def unicode_dic(dic, encoding):
     """
-    Decodes entire dictionary with given encoding.
+    Decodes bytes dictionary to unicode with given encoding.
     """
+    new_dic = {}
     for key, value in iteritems(dic):
         if isinstance(value, bytes):
-            dic[key] = value.decode(encoding)
-    return dic
+            value = value.decode(encoding)
+        if isinstance(key, bytes):
+            key = key.decode(encoding)
+        new_dic[key] = value
+    return new_dic
 
 
 class ShapefileReader(object):
@@ -25,7 +26,7 @@ class ShapefileReader(object):
     """
 
     def __init__(self, source, encoding='utf-8',
-                 delimiter='', quoting=''):
+                 delimiter='', quoting='', target_epsg=4326):
         if hasattr(source, 'name'):
             s = source.name
             source.close()
@@ -35,7 +36,7 @@ class ShapefileReader(object):
         self.layer = self.shapefile.GetLayer(0)
         source = self.layer.GetSpatialRef()
         target = osr.SpatialReference()
-        target.ImportFromEPSG(4326)
+        target.ImportFromEPSG(target_epsg)
         self.transform = osr.CoordinateTransformation(source, target)
 
     def length(self):
