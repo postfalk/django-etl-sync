@@ -20,7 +20,7 @@ install:
  - sed -i '/SQLITE_OMIT_LOAD_EXTENSION/d' setup.cfg
  - python setup.py install
  - cd ..
- - CFLAGS=-I/usr/include/gdal pip install GDAL==1.9
+ - CFLAGS=-I/usr/include/gdal pip install GDAL==1.11
  - pip install coveralls
  - pip install Django==$DJANGO_VERSION
  - python setup.py -q install
