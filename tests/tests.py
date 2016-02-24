@@ -1,6 +1,10 @@
+# Python 3.x compatibility
 from __future__ import print_function, absolute_import
 from six import text_type
 from future.utils import iteritems
+
+# deal with Deprecation warnings
+import warnings
 
 import os
 import glob
@@ -13,6 +17,7 @@ from tests.models import (
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambiguous_field)
 from etl_sync.mappers import Mapper, FeedbackCounter
+from etl_sync.mappers import Loader, FileReaderLogManager
 from etl_sync.readers import unicode_dic, ShapefileReader
 from etl_sync.transformations import Transformer
 
@@ -311,6 +316,21 @@ class TestModule(TestCase):
         self.assertNotEqual(hashvalue1, res[0].md5)
 
 
+class TestMapper(TestCase):
+    """Tests for restructured mapper."""
+
+    def test_deprication_warning(self):
+        with warnings.catch_warnings(record=True) as warn:
+            warnings.simplefilter('always')
+            Mapper()
+            self.assertEqual(len(warn), 1)
+            Loader(defaults={})
+            self.assertEqual(len(warn), 2)
+            Loader()
+            self.assertEqual(len(warn), 2)
+            FileReaderLogManager('test.txt')
+
+
 class TestLoad(TestCase):
     """
     Tests data loading from file.
@@ -325,11 +345,13 @@ class TestLoad(TestCase):
         (os.remove(fil) for fil in files)
 
     def test_load_from_file(self):
-        path = os.path.dirname(os.path.realpath(__file__))
-        filename = '{0}/data.txt'.format(path)
-        mapper = Mapper(filename=filename, model_class=TestModel)
-        mapper.load()
-        self.assertEqual(TestModel.objects.all().count(), 3)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            path = os.path.dirname(os.path.realpath(__file__))
+            filename = '{0}/data.txt'.format(path)
+            mapper = Mapper(filename=filename, model_class=TestModel)
+            mapper.load()
+            self.assertEqual(TestModel.objects.all().count(), 3)
 
 
 class TestReaders(TestCase):
