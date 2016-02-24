@@ -95,13 +95,15 @@ class Extractor(object):
     """
     Context manager that creates the reader and handles files.
     """
+    reader_class = csv.DictReader
+    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
 
     def __init__(self, filename, logname=None, reader_class=None,
                  reader_kwargs = {}, encoding=None):
         self.filename = filename
         self.log = logname
-        self.reader_class = reader_class
-        self.reader_kwargs = reader_kwargs
+        self.reader_class = self.reader_class or reader_class
+        self.reader_kwargs = self.reader_kwargs or reader_kwargs
         self.encoding = encoding
         self.fil = None
         self.logfile = None
@@ -127,7 +129,6 @@ class Extractor(object):
                 pass
 
 
-
 class FileReaderLogManager(Extractor):
 
     def __init__(self, *args, **kwargs):
@@ -141,7 +142,7 @@ class Loader(object):
     """
     Generic mapper object for ETL.
     """
-    reader_class = csv.DictReader
+    reader_class = csv.DictReader # to be deprecated
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     transformer_class = Transformer
     model_class = None
@@ -165,15 +166,19 @@ class Loader(object):
         for k in kwargs:
             try:
                 setattr(self, k, kwargs[k])
-                if k == 'defaults':
+                if k in ['defaults', 'reader_class', 'reader_kwargs']:
                     warnings.warn(
-                        'The defaults= kwarg for the Mapper class will '
+                        'The {}= kwarg for the Mapper class will '
                         'be deprecated in release 1.0. Set defaults '
-                        'in Mapper class.', DeprecationWarning)
+                        'in Mapper class.'.format(k),
+                        DeprecationWarning)
             except AttributeError:
                 warnings.warn(
                     'Invalid keyword argument for Mapper will be ignored.')
-        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
+        try:
+            self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
+        except:
+            pass
         self.logfilename = get_logfilename(self.filename)
 
     def _log(self, text):

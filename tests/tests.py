@@ -22,6 +22,8 @@ from etl_sync.readers import unicode_dic, ShapefileReader
 from etl_sync.transformations import Transformer
 
 
+warnings.simplefilter('always', DeprecationWarning)
+
 class TestModule(TestCase):
 
     def test_test_db(self):
@@ -320,8 +322,8 @@ class TestMapper(TestCase):
     """Tests for restructured mapper."""
 
     def test_deprication_warning(self):
+        warnings.simplefilter('always')
         with warnings.catch_warnings(record=True) as warn:
-            warnings.simplefilter('always')
             Mapper()
             self.assertEqual(len(warn), 1)
             Loader(defaults={})
@@ -329,6 +331,11 @@ class TestMapper(TestCase):
             Loader()
             self.assertEqual(len(warn), 2)
             FileReaderLogManager('test.txt')
+            self.assertEqual(len(warn), 3)
+            Loader(reader_class='test')
+            self.assertEqual(len(warn), 4)
+            Loader(reader_kwargs={})
+            self.assertEqual(len(warn), 5)
 
 
 class TestLoad(TestCase):
