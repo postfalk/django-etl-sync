@@ -1,22 +1,10 @@
 language: python
-addons:
-  apt:
-    sources:
-      - deadsnakes
-    packages:
-      - python3.5
 python:
  - 2.7
- - 3.5
+ - 3.4
 before_install:
  - sudo apt-get update -qq -y
  - sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-pip python-numpy build-essential git python-dev
- - wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.6.3.tar.gz
- - tar xzf pysqlite-2.6.3.tar.gz
- - cd pysqlite-2.6.3
- - sed -i "/SQLITE_OMIT_LOAD_EXTENSION/d" setup.cfg
- - sudo python setup.py install
- - cd ..
 env:
  - DJANGO_VERSION=1.6.5
  - DJANGO_VERSION=1.7
@@ -24,8 +12,14 @@ env:
  - DJANGO_VERSION=1.8.5
  - DJANGO_VERSION=1.9.2
 virtualenv:
-  system_site_packages: false
+ system_site_packages: false
 install: 
+ - wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.6.3.tar.gz
+ - tar xzf pysqlite-2.6.3.tar.gz
+ - cd pysqlite-2.6.3
+ - sed -i '/SQLITE_OMIT_LOAD_EXTENSION/d' setup.cfg
+ - sudo python setup.py install
+ - cd ..
  - pip install unicodecsv
  - CFLAGS=-I/usr/include/gdal pip install GDAL
  - pip install coveralls
