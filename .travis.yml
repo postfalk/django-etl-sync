@@ -3,8 +3,9 @@ python:
  - "2.7"
  - "3.4"
 before_install:
+ - "sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable"
  - "sudo apt-get update -qq -y"
- - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-numpy build-essential git python-dev"
+ - "sudo apt-get install -qq -y libgdal-dev gdal-bin python-gdal python-numpy build-essential git python-dev python3-dev"
 env:
  # - DJANGO_VERSION=1.6.5
  # - DJANGO_VERSION=1.7
@@ -17,7 +18,7 @@ install:
  - tar xzf pysqlite-2.6.3.tar.gz
  - cd pysqlite-2.6.3
  - sed -i '/SQLITE_OMIT_LOAD_EXTENSION/d' setup.cfg
- - sudo python setup.py install
+ - python setup.py install
  - cd ..
  - CFLAGS=-I/usr/include/gdal pip install GDAL==1.9
  - pip install coveralls
