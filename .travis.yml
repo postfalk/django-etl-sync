@@ -24,7 +24,7 @@ env:
  - DJANGO_VERSION=1.8.5
  - DJANGO_VERSION=1.9.2
 virtualenv:
-  system_site_packages: true
+  system_site_packages: false
 install: 
  - pip install unicodecsv
  - CFLAGS=-I/usr/include/gdal pip install GDAL
