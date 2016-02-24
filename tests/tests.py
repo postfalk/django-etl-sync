@@ -336,6 +336,8 @@ class TestMapper(TestCase):
             self.assertEqual(len(warn), 4)
             Loader(reader_kwargs={})
             self.assertEqual(len(warn), 5)
+            Loader(encoding='utf8')
+            self.assertEqual(len(warn), 6)
 
 
 class TestLoad(TestCase):

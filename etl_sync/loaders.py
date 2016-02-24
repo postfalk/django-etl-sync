@@ -143,11 +143,13 @@ class Loader(object):
     Generic mapper object for ETL.
     """
     reader_class = csv.DictReader # to be deprecated
-    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
+    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE} # to be deprecated
     transformer_class = Transformer
+    extractor_class = Extractor
+    generator_class = InstanceGenerator
     model_class = None
     filename = None
-    encoding = 'utf-8'
+    encoding = 'utf-8' # to be deprecated
     slice_begin = 0
     slice_end = None
     defaults = {} # to be deprecated in 1.0, set in Transformer class
@@ -166,11 +168,22 @@ class Loader(object):
         for k in kwargs:
             try:
                 setattr(self, k, kwargs[k])
-                if k in ['defaults', 'reader_class', 'reader_kwargs']:
+                will_be_deprecated = {
+                    'defaults': 'Transformer',
+                    'reader_class': 'Extractor',
+                    'reader_kwargs': 'Extractor',
+                    'encoding': 'Extractor',
+                    'logfile': 'Extractor',
+                    'logfilename': 'Extractor',
+                    'create_new': 'Generator',
+                    'update': 'Generator',
+                    'create_foreign_key': 'Generator',
+                    'message': 'Extractor'}
+                if k in will_be_deprecated:
                     warnings.warn(
                         'The {}= kwarg for the Mapper class will '
-                        'be deprecated in release 1.0. Set defaults '
-                        'in Mapper class.'.format(k),
+                        'be deprecated in release 1.0. Set values '
+                        'in subclass of {}.'.format(k, will_be_deprecated[k]),
                         DeprecationWarning)
             except AttributeError:
                 warnings.warn(
@@ -192,12 +205,12 @@ class Loader(object):
         Loads data into database using Django models and error logging.
         """
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-        with FileReaderLogManager(self.filename,
-                                  logname=self.logfilename,
-                                  reader_class=self.reader_class,
-                                  reader_kwargs=self.reader_kwargs,
-                                  encoding=self.encoding) as reader:
-            reader.log(
+        with self.extractor_class(self.filename,
+                       logname=self.logfilename,
+                       reader_class=self.reader_class,
+                       reader_kwargs=self.reader_kwargs,
+                       encoding=self.encoding) as extractor:
+            extractor.log(
                 'Data extraction started {0}\n\nStart line: '
                 '{1}\nEnd line: {2}\n'.format(
                     datetime.now().strftime(
@@ -205,25 +218,25 @@ class Loader(object):
             counter = FeedbackCounter(
                 feedbacksize=self.feedbacksize, message=self.message)
             while self.slice_begin and self.slice_begin > counter.counter:
-                reader.next()
+                extractor.next()
                 counter.increment()
             while not self.slice_end or self.slice_end >= counter.counter:
                 try:
-                    csv_dic = reader.next()
+                    csv_dic = extractor.next()
                 except (UnicodeDecodeError, csv.Error):
-                    reader.log(
+                    extractor.log(
                         'Text decoding or CSV error in line {0} '
                         '=> rejected'.format(counter.counter))
                     counter.reject()
                     continue
                 except StopIteration:
-                    reader.log('End of file.')
+                    extractor.log('End of file.')
                     break
                 transformer = self.transformer_class(csv_dic, self.defaults)
                 if transformer.is_valid():
                     dic = transformer.cleaned_data
                 else:
-                    reader.log(
+                    extractor.log(
                         'Validation error in line {0}: {1} '
                         '=> rejected'.format(
                             counter.counter, transformer.error))
@@ -234,17 +247,17 @@ class Loader(object):
                 # determine the correct one and get rid of the others
                 if 'id' in dic:
                     del dic['id']
-                generator = InstanceGenerator(
+                generator = self.generator_class(
                     self.model_class, dic,
                     persistence=self.etl_persistence)
                 try:
                     generator.get_instance()
                 except (ValidationError, IntegrityError, DatabaseError) as e:
-                    reader.log('Error in line {0}: {1} => rejected'.format(
+                    extractor.log('Error in line {0}: {1} => rejected'.format(
                         counter.counter, str(e)))
                     counter.reject()
                     continue
                 else:
                     counter.use_result(generator.res)
-            reader.log(counter.finished())
+            extractor.log(counter.finished())
         self.result = 'loaded'
