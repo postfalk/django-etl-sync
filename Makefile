@@ -10,7 +10,7 @@ env: $(parent_dir)/env/bin/activate
 
 $(parent_dir)/env/bin/activate: requirements.txt
 	test -d env || virtualenv $(parent_dir)/env
-	$(parent_dir)/env/bin/pip install -Ur requirements.txt
+	CFLAGS=-I/usr/include/gdal $(parent_dir)/env/bin/pip install -Ur requirements.txt
 	touch $(parent_dir)/env/bin/acivate
 
 spatialite: $(parent_dir)/env/bin/activate
@@ -22,7 +22,7 @@ ifeq ($(OS), Darwin)
 	# and libspatialite is installed as well
 	echo "include_dirs=/usr/local/opt/sqlite/include\nlibrary_dirs=/usr/local/opt/sqlite/lib" >> $(parent_dir)/env/$(pysqlite)/setup.cfg
 else
-	# Run Ubuntu commands
+	echo "include_dirs=/usr/include"
 endif
 	cd $(parent_dir)/env/$(pysqlite) && $(parent_dir)/env/bin/python setup.py install
 
