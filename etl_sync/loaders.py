@@ -1,8 +1,5 @@
 from __future__ import print_function
-try:
-    from backports import csv
-except ImportError:
-    pass
+from backports import csv
 from io import open
 from builtins import str as text
 
@@ -97,14 +94,16 @@ class Extractor(object):
     """
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
+    encoding = 'utf-8'
+    logname = None
 
     def __init__(self, filename, logname=None, reader_class=None,
                  reader_kwargs = {}, encoding=None):
         self.filename = filename
-        self.log = logname
-        self.reader_class = self.reader_class or reader_class
-        self.reader_kwargs = self.reader_kwargs or reader_kwargs
-        self.encoding = encoding
+        self.logname = self.logname or logname or get_logfilename(filename)  # deprecate kwarg
+        self.reader_class = self.reader_class or reader_class  # deprecate kwarg
+        self.reader_kwargs = self.reader_kwargs or reader_kwargs  # deprecate kwarg
+        self.encoding = self.encoding or encoding  # deprecate kwarg
         self.fil = None
         self.logfile = None
 
@@ -116,7 +115,7 @@ class Extractor(object):
 
     def __enter__(self):
         self.fil = open(self.filename, 'r')
-        self.logfile = open(self.log, 'w')
+        self.logfile = open(self.logname, 'w')
         reader = self.reader_class(self.fil, **self.reader_kwargs)
         reader.log = self._log
         return reader
@@ -130,6 +129,7 @@ class Extractor(object):
 
 
 class FileReaderLogManager(Extractor):
+    """Deprecate, use for compatibility"""
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
@@ -242,11 +242,6 @@ class Loader(object):
                             counter.counter, transformer.error))
                     counter.reject()
                     continue
-                # remove keywords conflicting with Django model
-                # TODO: I think that is done in several places now
-                # determine the correct one and get rid of the others
-                if 'id' in dic:
-                    del dic['id']
                 generator = self.generator_class(
                     self.model_class, dic,
                     persistence=self.etl_persistence)
@@ -260,4 +255,4 @@ class Loader(object):
                 else:
                     counter.use_result(generator.res)
             extractor.log(counter.finished())
-        self.result = 'loaded'
+        return 'finished'
