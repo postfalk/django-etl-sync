@@ -18,9 +18,9 @@ def unicode_dic(dic, encoding):
     return new_dic
 
 
-class ShapefileReader(object):
+class OGRReader(object):
     """
-    ShapefileReader reads ESRI shape files and is partially (duck-typed)
+    OGRReader for all OGR formats. Partially (duck-typed)
     compatible with csv.DictReader.
     """
 
@@ -53,3 +53,7 @@ class ShapefileReader(object):
             ogr_geom.Transform(self.transform)
             ret['geometry'] = ogr_geom.ExportToWkt()
             return ret
+
+
+class ShapefileReader(OGRReader):
+    """For compatibility"""

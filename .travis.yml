@@ -14,9 +14,9 @@ env:
 virtualenv:
  system_site_packages: false
 install: 
- - wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.6.3.tar.gz
- - tar xzf pysqlite-2.6.3.tar.gz
- - cd pysqlite-2.6.3
+ - wget https://pypi.python.org/packages/source/p/pysqlite/pysqlite-2.8.1.tar.gz
+ - tar xzf pysqlite-2.8.1.tar.gz
+ - cd pysqlite-2.8.1
  - sed -i '/SQLITE_OMIT_LOAD_EXTENSION/d' setup.cfg
  - python setup.py install
  - cd ..
