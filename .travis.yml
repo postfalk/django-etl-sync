@@ -15,11 +15,11 @@ virtualenv:
  system_site_packages: true
 install: 
  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite; fi
- - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10
  - pip install coveralls
  - pip install -r requirements.txt
  - pip install Django==$DJANGO_VERSION
  - python setup.py -q install
+ - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10
 script:
     coverage run --source etl_sync runtests.py
 after_success:

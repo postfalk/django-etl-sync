@@ -1,9 +1,11 @@
 # use with appropriate CFLAGS for GDAL header files
 # e.g. Ubuntu: CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
+# Use same GDAL version as installed on your system
+# see gdal-config --version
 
 django==1.8.5
 unicodecsv==0.14.1
-GDAL==1.9
+GDAL==1.10
 six==1.10
 future==0.15.2
 backports.csv
