@@ -9,20 +9,41 @@ ETL based on Django model introspection
 
 ## Overview
 
-This reusable Django app provides classes to include light weight ETL into your project.
+- Re-usable Django app that provides classes for light weight ETL in your 
+project. (Will be more independent from the Django framework in the future)
 
-The package is not geared toward speed but toward sync'ing with upstream data sources (e.g. for an API).
+- Geared toward sync'ing with upstream data sources (e.g. for an API) or 
+legacy data (it was originally build for ecoengine.berkeley.edu loading
+million records from museum collection data with regular small changes).
 
-However, subclassing allows for replacing methods with speedier, simplified or more sophisticated versions.
+- Prioritizes data consistency over speed.
 
-The package supports data persistence, consistency, normalization, and recreating relationships from flat files.
+- Subclassing allows for replacing of methods with speedier, simplified 
+or more sophisticated versions.
 
-The app derives most ETL rules from model introspection. This rules can be easily modified and overriden.
+- Supports data persistence, consistency, normalization, and recreation 
+of relationships from flatten files or dumps.
 
-The project can be easily used within a parallelization framework such as Celery, thorough checks of the state of the destination avoid race conditions and inconsistencies (at the cost of speed.)
+- Derives ETL rules from Django model introspection (the use of other 
+frameworks or database declarations is planned). This rules can be easily 
+modified and overriden (as long as they do not cause integrity errors).
+
+- Can be easily used within a parallelization framework such as Celery, 
+thorough checks of the state of the destination avoid race conditions and 
+inconsistencies (at the cost of speed.)
+
+- Supports Django Forms as transformation rules. This way web forms within 
+the app can be re-used as transformation rules.
 
 
-## How to use
+## Requirements
+
+- Python 2.7 upwards, Python 3
+- Django 1.6.6 upwards
+- GDAL if OGR readers for geodata are used
+
+
+## Tutorial
 
 ### Installation
 
@@ -36,16 +57,19 @@ Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
 ### Minimal Examples
 
-The app provides two principal ways of usage on either file or record level.
+The module provides two principal ways of usage on either file or record level.
 
-1. Use the `Mapper` class to specify all ETL operations. If you need
+1. Use the `Loader` class to specify all ETL operations. If you need
 to make changes to the data between reading from the file and writing them to the
 database create a costum `Transformer` class (see below).
 
-2. Use the `Generator`. This class maps dictionary keys into a Django model and returns an instance. In this case
-custom transformations need to be performed before using the Generator class.
-This can be done in any possible way. Of course you can use the `Transformer`
-class for this task.
+** The loader class was called Mapper in earlier versions. The the Mapper class is 
+still around in this relase but will be deprecated in the future (planned for 
+version 1.0) **
+
+2. Use the `Generator`. This class maps dictionary keys into a Django model and 
+returns an instance. The input dictionary needs to satisfy the the requirements 
+of the model. Apply transformations beforehand.
 
 
 #### Minimal example: file load:
@@ -70,10 +94,10 @@ class TestModel(models.Model)
 
 
 # <yourscript>.py
-from etl_sync.mappers import Mapper
+from etl_sync.loader import Loader
 from <yourproject>.models import TestModel
 
-class YourMapper(Mapper)
+class YourLoader(Loader)
     """
     Add your specific settings here.
     """
@@ -81,8 +105,8 @@ class YourMapper(Mapper)
     model_class = TestModel
 
     if __name__ == '__main__':
-        mapper = YourMapper()
-        res = mapper.load()
+        loader = YourLoader()
+        res = loader.load()
 ```
 
 
@@ -109,15 +133,22 @@ if __name__ == '__main__':
 
 **Unique fields**
 
-Before loading a record it might be necessary to check whether it already exists, whether it needs to be added or updated (persistence).
-By default the module inspects the target model and uses model fields with the attribute unique=True as criterion for persistence.
-The module will check first whether any record with the given combination of values in unique fields already exists and update that record.
+Before loading a record it might be necessary to check whether 
+it already exists, whether it needs to be added or updated 
+(persistence). By default the module inspects the target model 
+and uses model fields with the attribute unique=True as criterion 
+for persistence. The module will check first whether any record with 
+the given combination of values in unique fields already exists and 
+update that record.
 
-<font color='red'>WARNING: Do not use the models internal pk or ide field as identifier for your data! Add an extra record or remote_id field.</font>*
+<font color='red'>WARNING: Do not use the models internal pk or 
+id field as identifier for your data! Add an extra record or 
+remote_id field.</font>*
 
 **Extra arguments**
 
-Another method to add (or overwrite) persistence criterions is to add a a list of fields via key word argument.
+Another method to add (or overwrite) persistence criterions is to add a 
+a list of fields via key word argument.
 
 ```python
     generator = InstanceGenerator(TestModel, dic, persistence = ['record', 'source'])
@@ -126,7 +157,7 @@ Another method to add (or overwrite) persistence criterions is to add a a list o
 
 **Subclassing**
 
-You can also subclass InstanceGenerator to create your own generator class.
+You can subclass InstanceGenerator to create your own generator class.
 
 ```python
 from etl_sync.generators import InstanceGenerator
@@ -146,28 +177,41 @@ The last method is to put an extra key value pair in your data dictionary.
 dic = {'record': 6365, 'name': 'john', 'occupation': 'developer', 'etl_persistence': ['record']}
 ```
 
-This technique is useful for nested records if the recursive call of InstanceGenerator cannot be
+This technique is useful for nested records if the recursive call of
+InstanceGenerator cannot be
 directly accessed (see below). However ...
 
-**Defining persistence by a field attributes and a concise data model is the preferred method.**
+**Defining persistence by a field attributes and a concise data model is the 
+preferred method.**
 
-Once the variable **persistence** is overwritten the model field attributes will be ignored. Nevertheless,
-conflicts with your data definition will through database errors.
+Once the variable **persistence** is overwritten the model field attributes 
+will be ignored. Nevertheless, conflicts with your data definition will 
+through database errors. 
 
-## Readers
+### Error handling ###
 
-By default django-etl-sync uses the csv.DictReader, other reader classes can be used or
-created if they are similar to csv.DictReader.
+If the Generator class is called within the Mapper class, errors will
+be caught and written to the defined logfile or to stdout. But the 
+loading process will continue. 
 
-The package currently contains a reader for ESRI Shapefiles.
+## Readers ##
+
+By default django-etl-sync uses the csv.DictReader, other reader 
+classes can be used or created if they are similar to csv.DictReader.
+
+The package currently contains a reader for OGR readable files.
 
 ```python
 from etl_sync.generators import InstanceGenerator
-from etl_sync.readers import ShapefileReader
+from etl_sync.readers import OGRReader
 
 class MyMapper(Mapper):
-    reader_class=Shapefilereader
+    reader_class=OGRReader
 ```
+
+****The OGRReader covers the functionality of the older ShapefileReader.
+There is still a sub class called ShapefileReader for compatibility.
+But it will be removed in version 1.0.****
 
 ## Transformations
 
@@ -180,7 +224,7 @@ records.
 Instantiate InstanceGenerator with a costumized Transformer class:
 
 ```python
-from etl_sync.mappers import Mapper
+from etl_sync.loaders import Loader
 from etl_sync.transformes import Transformer
 
 class MyTransformer(Transformer):
@@ -194,8 +238,8 @@ class MyMapper(InstanceGenerator):
     transformer_class = MyTransformer
     filename = myfile.txt
 
-mapper = MyMapper()
-mapper.load()
+loader = MyLoader()
+loader.load()
 ```
 
 * The `mapping` property contains a dictionary in the form `{‘original_fieldname’: ‘new_fieldname’}` which will remap the dictionary.
