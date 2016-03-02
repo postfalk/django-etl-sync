@@ -2,6 +2,7 @@
 from __future__ import print_function
 from future.utils import iteritems
 
+import warnings
 from osgeo import osr, ogr
 
 def unicode_dic(dic, encoding):
@@ -56,4 +57,10 @@ class OGRReader(object):
 
 
 class ShapefileReader(OGRReader):
-    """For compatibility"""
+    """
+    For compatibility with older versions.
+    """
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(DeprecationWarning)
+        super(ShapefileReader, self).__init__(*args, **kwargs)
