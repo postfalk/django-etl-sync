@@ -65,7 +65,7 @@ database create a costum `Transformer` class (see below).
 
 ** The loader class was called Mapper in earlier versions. The the Mapper class is 
 still around in this relase but will be deprecated in the future (planned for 
-version 1.0) **
+version 1.0) t **
 
 2. Use the `Generator`. This class maps dictionary keys into a Django model and 
 returns an instance. The input dictionary needs to satisfy the the requirements 
