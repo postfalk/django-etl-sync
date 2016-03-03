@@ -89,7 +89,7 @@ record  name
 # models.py
 from django.db import models
 
-class TestModel(models.Model)
+class TestModel(models.Model):
     """
     Example Model.
     """
@@ -101,7 +101,7 @@ class TestModel(models.Model)
 from etl_sync.loader import Loader
 from <yourproject>.models import TestModel
 
-class YourLoader(Loader)
+class YourLoader(Loader):
     """
     Add your specific settings here.
     """
