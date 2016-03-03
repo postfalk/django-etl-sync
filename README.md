@@ -63,14 +63,18 @@ The module provides two principal ways of usage on either file or record level.
 to make changes to the data between reading from the file and writing them to the
 database create a costum `Transformer` class (see below).
 
-** The loader class was called Mapper in earlier versions. The the Mapper class is 
-still around in this relase but will be deprecated in the future (planned for 
-version 1.0) **
+*The loader class was called Mapper in earlier versions. There is still a* `Mapper` 
+*class which is a wrapper of the* `Loader` *class that will throw an deprecation 
+warning upon initialization (removal planned for version 1.0). Applications that 
+were build with the older version will still work for now.*
 
-2. Use the `Generator`. This class maps dictionary keys into a Django model and 
-returns an instance. The input dictionary needs to satisfy the the requirements 
+2. Use the `Generator` to generate a Django model from a dictionary and 
+return an instance. The input dictionary needs to satisfy the the requirements 
 of the model. Apply transformations beforehand.
 
+The difference to simply create an instance by Model(**dict) is the thorough check
+for consistency and the creation of relationships. However, if the simple method 
+is convenient, a Django Model could be used in place of the Generator.
 
 #### Minimal example: file load:
 
@@ -209,9 +213,9 @@ class MyMapper(Mapper):
     reader_class=OGRReader
 ```
 
-****The OGRReader covers the functionality of the older ShapefileReader.
-There is still a sub class called ShapefileReader for compatibility.
-But it will be removed in version 1.0.****
+*The* ```OGRReader``` *covers the functionality of the older* ```ShapefileReader``` *.
+There is still a stub class called ShapefileReader for compatibility.
+It will be removed in version 1.0.*
 
 ## Transformations
 
