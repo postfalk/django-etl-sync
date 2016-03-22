@@ -114,9 +114,18 @@ class Extractor(object):
         print(text(tex), file=self.logfile)
 
     def __enter__(self):
-        self.fil = open(self.filename, 'r')
+        """
+        Passes file object to reader class as required by csv.Reader.
+        On failure pass path to reader class and see whether it can be
+        handled there. Allows for non-text data sources or directories.
+        """
         self.logfile = open(self.logname, 'w')
-        reader = self.reader_class(self.fil, **self.reader_kwargs)
+        try:
+            self.fil = open(self.filename, 'r')
+        except IOError:
+            reader = self.reader_class(self.filename, **self.reader_kwargs)
+        else:
+            reader = self.reader_class(self.fil, **self.reader_kwargs)
         reader.log = self._log
         return reader
 
