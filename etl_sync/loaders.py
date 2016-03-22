@@ -100,10 +100,10 @@ class Extractor(object):
     def __init__(self, filename, logname=None, reader_class=None,
                  reader_kwargs = {}, encoding=None):
         self.filename = filename
-        self.logname = self.logname or logname or get_logfilename(filename)  # deprecate kwarg
-        self.reader_class = self.reader_class or reader_class  # deprecate kwarg
-        self.reader_kwargs = self.reader_kwargs or reader_kwargs  # deprecate kwarg
-        self.encoding = self.encoding or encoding  # deprecate kwarg
+        self.logname = logname or self.logname or get_logfilename(filename)  # deprecate kwarg
+        self.reader_class = reader_class or self.reader_class  # deprecate kwarg
+        self.reader_kwargs = reader_kwargs or self.reader_kwargs  # deprecate kwarg
+        self.encoding = encoding or self.encoding  # deprecate kwarg
         self.fil = None
         self.logfile = None
 
