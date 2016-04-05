@@ -21,19 +21,33 @@ def unicode_dic(dic, encoding):
 
 class OGRReader(object):
     """
-    OGRReader for all OGR formats. Partially (duck-typed)
+    OGRReader for supported OGR formats. Partially (duck-typed)
     compatible with csv.DictReader.
+
+    Args:
+        source (bytes): Complete path to the source file.
+        encoding (Optional[bytes]): Encoding string. Defaults to 'utf-8'.
+        delimiter (Optional[bytes]): Unused. Here for compatibility.
+        quoting (Optional[bytes]): Unused. Here for compatibility.
+        target_epsg (Optional[int]): Spatial reference. Defaults to 4326.
+        feature_class_name (Optional[bytes]): Name of the feature class within ds.
+            Defaults to the first returned by GDAL.
     """
 
     def __init__(self, source, encoding='utf-8',
-                 delimiter='', quoting='', target_epsg=4326):
+                 delimiter='', quoting='', target_epsg=4326,
+                 feature_class_name=''):
         if hasattr(source, 'name'):
             s = source.name
             source.close()
             source = s
         self.encoding = encoding
-        self.shapefile = ogr.Open(source)
-        self.layer = self.shapefile.GetLayer(0)
+        self.ds = ogr.Open(source)
+        if not feature_class_name:
+            self.layer = self.ds.GetLayer(0)
+        else:
+            self.layer = self.ds.GetLayerByName(
+                feature_class_name)
         source = self.layer.GetSpatialRef()
         target = osr.SpatialReference()
         target.ImportFromEPSG(target_epsg)
