@@ -302,7 +302,7 @@ class InstanceGenerator(BaseInstanceGenerator):
 
     def _prepare_geometry(self, field, value):
         """
-        Reduce geometry to two dimensions if models.GeometryField
+        Reduce geometry to two dimensions if models. GeometryField
         dim parameter is not set otherwise.
         """
         from django.contrib.gis.geos import WKBWriter, GEOSGeometry
@@ -332,7 +332,11 @@ class InstanceGenerator(BaseInstanceGenerator):
         if isinstance(dic, self.model_class):
             return dic
         model_instance = self.model_class()
-        fieldnames = [item.name for item in model_instance._meta.get_fields()]
+        try:
+            fieldnames = [item.name for item in model_instance._meta.get_fields()]
+        except AttributeError:
+            # for Django 1.7 compatibility
+            fieldnames = model_instance._meta.get_all_field_names()
         for fieldname in fieldnames:
             if fieldname not in dic:
                 continue
