@@ -332,7 +332,7 @@ class InstanceGenerator(BaseInstanceGenerator):
         if isinstance(dic, self.model_class):
             return dic
         model_instance = self.model_class()
-        fieldnames = model_instance._meta.get_all_field_names()
+        fieldnames = [item.name for item in model_instance._meta.get_fields()]
         for fieldname in fieldnames:
             if fieldname not in dic:
                 continue
