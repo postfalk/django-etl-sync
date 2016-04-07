@@ -6,7 +6,7 @@ Django ETL Sync
 .. image:: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
     :target: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
 .. image:: https://img.shields.io/pypi/v/django-etl_sync.svg
-    :target: https://pypi.python.org/pypi/django-etl_sync/:w
+    :target: https://pypi.python.org/pypi/django-etl_sync/
     
 
 ETL based on Django model introspection.
