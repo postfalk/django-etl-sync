@@ -3,3 +3,8 @@
 *.egg-info
 tests/test_settings_local.py
 dist/
+
+# Sphinx stuff
+conf.py
+README.rst.rst
+_build/
