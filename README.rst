@@ -8,42 +8,29 @@ Django ETL Sync
 
 ETL based on Django model introspection.
 
-Django-etl-sync derives ETL rules from Django model introspection and is able to trace and 
-create relationships such as foreign keys and many-to-many relationship.
+Django-etl-sync derives ETL rules from Django model introspection and is able to trace and create relationships such as foreign keys and many-to-many relationship.
 
-The package currently lacks a method to move records no longer present in upstream
-data.
+The package currently lacks a method to move records no longer present in upstream data.
 
 
 Overview
 --------
 
-- Re-usable Django app that provides classes for light weight ETL in your 
-project. (Will be more independent from the Django framework in the future)
+- Re-usable Django app that provides classes for light weight ETL in your project. (Will be more independent from the Django framework in the future)
 
-- Geared toward sync'ing with upstream data sources (e.g. for an API) or 
-legacy data (it was originally build for ecoengine.berkeley.edu loading
-million records from museum collection data with regular small changes).
+- Geared toward sync'ing with upstream data sources (e.g. for an API) or legacy data (it was originally build for ecoengine.berkeley.edu loading million records from museum collection data with regular small changes).
 
 - Prioritizes data consistency over speed.
 
-- Subclassing allows for replacing of methods with speedier, simplified 
-or more sophisticated versions.
+- Subclassing allows for replacing of methods with speedier, simplified or more sophisticated versions.
 
-- Supports data persistence, consistency, normalization, and recreation 
-of relationships from flatten files or dumps.
+- Supports data persistence, consistency, normalization, and recreation of relationships from flatten files or dumps.
 
-- Derives ETL rules from Django model introspection (the use of other 
-frameworks or database declarations is planned). This rules can be easily 
-modified and overriden (as long as they do not cause integrity errors).
+- Derives ETL rules from Django model introspection (the use of other frameworks or database declarations is planned). This rules can be easily modified and overriden (as long as they do not cause integrity errors).
 
-- Can be easily used within a parallelization framework such as Celery, 
-thorough checks of the state of the destination avoid race conditions and 
-inconsistencies (at the cost of speed.)
+- Can be easily used within a parallelization framework such as Celery, thorough checks of the state of the destination avoid race conditions and inconsistencies (at the cost of speed.)
 
-- Supports Django Forms as transformation rules. This way web forms within 
-the app can be re-used as transformation rules.
-
+- Supports Django Forms as transformation rules. This way web forms within the app can be re-used as transformation rules.
 
 Requirements
 ------------
@@ -67,22 +54,13 @@ Minimal Examples
 
 The module provides two principal ways of usage on either file or record level.
 
-1. Use the ``Loader`` class to specify all ETL operations. If you need
-to make changes to the data between reading from the file and writing them to the
-database create a custom ``Transformer`` class (see below).
+1. Use the ``Loader`` class to specify all ETL operations. If you need to make changes to the data between reading from the file and writing them to the database create a custom ``Transformer`` class (see below).
 
-**The loader class was called Mapper in earlier versions. There is still a* ``Mapper`` 
-*class which is a wrapper of the* ``Loader`` *class that will throw an deprecation 
-warning upon initialization (removal planned for version 1.0). Applications that 
-were build with the older version will still work for now.*
+**The loader class was called Mapper in earlier versions. There is still a* ``Mapper`` *class which is a wrapper of the* ``Loader`` *class that will throw an deprecation warning upon initialization (removal planned for version 1.0). Applications that were build with the older version will still work for now.*
 
-2. Use the ``Generator`` class to generate a Django model instance from a dictionary and 
-return the instance. The input dictionary needs to satisfy the the requirements 
-of the model. Apply transformations beforehand.
+2. Use the ``Generator`` class to generate a Django model instance from a dictionary and return the instance. The input dictionary needs to satisfy the the requirements of the model. Apply transformations beforehand.
 
-The difference to simply create an instance by Model(**dict) is the thorough check
-for consistency and the creation of relationships. However, if the simple method 
-is convenient, a Django Model could be used in place of the Generator.
+The difference to simply create an instance by Model(**dict) is the thorough check for consistency and the creation of relationships. However, if the simple method is convenient, a Django Model could be used in place of the Generator.
 
 Minimal example: file load
 --------------------------
@@ -144,17 +122,11 @@ Persistence
 
 **Unique fields**
 
-Before loading a record it might be necessary to check whether 
-it already exists, whether it needs to be added or updated 
-(persistence). By default the module inspects the target model 
-and uses model fields with the attribute unique=True as criterion 
-for persistence. The module will check first whether any record with 
-the given combination of values in unique fields already exists and 
-update that record.
+Before loading a record it might be necessary to check whether it already exists, whether it needs to be added or updated (persistence). By default the module inspects the target model and uses model fields with the attribute unique=True as criterion for persistence. The module will check first whether any record with the given combination of values in unique fields already exists and update that record.
 
-<font color='red'>WARNING: Do not use the models internal pk or 
+.. note:: Do not use the models internal pk or 
 id field as identifier for your data! Add an extra record or 
-remote_id field.</font>*
+remote_id field.
 
 **Extra arguments**
 
