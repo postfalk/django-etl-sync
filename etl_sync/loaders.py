@@ -90,7 +90,7 @@ class FeedbackCounter(object):
 
 class Extractor(object):
     """
-    Context manager that creates the reader and handles files.
+    Context manager, creates the reader and handles files.
     """
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
