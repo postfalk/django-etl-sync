@@ -5,6 +5,12 @@ Django ETL Sync
     :target: https://travis-ci.org/postfalk/django-etl-sync
 .. image:: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
     :target: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
+.. image:: https://pypip.in/v/postfalk/django-etl-sync/badge.png
+    :target: https://crate.io/packages/postfalk/django-etl-sync/
+    :alt: Latest PyPI version
+.. image:: https://pypip.in/d/postfalk/django-etl-sync/badge.png
+    :target: https://crate.io/packages/django-etl-sync/
+    :alt: Number of PyPI downloads
 
 ETL based on Django model introspection.
 
@@ -17,19 +23,12 @@ Overview
 --------
 
 - Re-usable Django app that provides classes for light weight ETL in your project. (Will be more independent from the Django framework in the future)
-
 - Geared toward sync'ing with upstream data sources (e.g. for an API) or legacy data (it was originally build for ecoengine.berkeley.edu loading million records from museum collection data with regular small changes).
-
 - Prioritizes data consistency over speed.
-
 - Subclassing allows for replacing of methods with speedier, simplified or more sophisticated versions.
-
 - Supports data persistence, consistency, normalization, and recreation of relationships from flatten files or dumps.
-
 - Derives ETL rules from Django model introspection (the use of other frameworks or database declarations is planned). This rules can be easily modified and overriden (as long as they do not cause integrity errors).
-
 - Can be easily used within a parallelization framework such as Celery, thorough checks of the state of the destination avoid race conditions and inconsistencies (at the cost of speed.)
-
 - Supports Django Forms as transformation rules. This way web forms within the app can be re-used as transformation rules.
 
 Requirements
