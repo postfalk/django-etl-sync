@@ -12,7 +12,7 @@ setup(
     include_package_data=True,
     license='BSD License',
     description='Django ETL, derives rules from models, creates relations.',
-    long_description='README.md',
+    long_description=open('README.rst').read(),
     url='https://github.com/postfalk/django-etl-sync.git',
     download_url='https://github.com/postfalk/django-etl-sync/tarball/0.2',
     author='Falk Schuetzenmeister',

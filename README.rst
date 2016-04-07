@@ -1,13 +1,22 @@
-# Django ETL Sync
+Django ETL Sync
+===============
 
-ETL based on Django model introspection
+.. image:: https://travis-ci.org/postfalk/django-etl-sync.svg?branch=master
+    :target: https://travis-ci.org/postfalk/django-etl-sync
+.. image:: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
+    :target: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
 
-[![Build Status][travis-image]][travis-link]
-[![Coverage Status][coveralls-image]][coveralls-link]
+ETL based on Django model introspection.
 
----
+Django-etl-sync derives ETL rules from Django model introspection and is able to trace and 
+create relationships such as foreign keys and many-to-many relationship.
 
-## Overview
+The package currently lacks a method to move records no longer present in upstream
+data.
+
+
+Overview
+--------
 
 - Re-usable Django app that provides classes for light weight ETL in your 
 project. (Will be more independent from the Django framework in the future)
@@ -36,104 +45,102 @@ inconsistencies (at the cost of speed.)
 the app can be re-used as transformation rules.
 
 
-## Requirements
+Requirements
+------------
 
 - Python 2.7 upwards, Python 3
-- Django 1.6.6 upwards
+- Django 1.7 (tested) upwards
 - GDAL if OGR readers for geodata are used
 
-
-## Tutorial
-
-### Installation
+Installation
+------------
 
 The package is in active development toward a release. For evaluation, contribution, and testing.
 
-```bash
-pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync
-````
+.. code-block:: sh
+    pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync
 
 Add `etl_sync` to `INSTALLED_APPS` in settings.py.
 
-### Minimal Examples
+Minimal Examples
+----------------
 
 The module provides two principal ways of usage on either file or record level.
 
-1. Use the `Loader` class to specify all ETL operations. If you need
+1. Use the ``Loader`` class to specify all ETL operations. If you need
 to make changes to the data between reading from the file and writing them to the
-database create a costum `Transformer` class (see below).
+database create a custom ``Transformer`` class (see below).
 
-*The loader class was called Mapper in earlier versions. There is still a* `Mapper` 
-*class which is a wrapper of the* `Loader` *class that will throw an deprecation 
+**The loader class was called Mapper in earlier versions. There is still a* ``Mapper`` 
+*class which is a wrapper of the* ``Loader`` *class that will throw an deprecation 
 warning upon initialization (removal planned for version 1.0). Applications that 
 were build with the older version will still work for now.*
 
-2. Use the `Generator` to generate a Django model from a dictionary and 
-return an instance. The input dictionary needs to satisfy the the requirements 
+2. Use the ``Generator`` class to generate a Django model instance from a dictionary and 
+return the instance. The input dictionary needs to satisfy the the requirements 
 of the model. Apply transformations beforehand.
 
 The difference to simply create an instance by Model(**dict) is the thorough check
 for consistency and the creation of relationships. However, if the simple method 
 is convenient, a Django Model could be used in place of the Generator.
 
-#### Minimal example: file load:
+Minimal example: file load
+--------------------------
 
-```python
-# data.txt
-record  name
-1 one
-2 two
-3 three
+.. code-block:: python
 
-
-# models.py
-from django.db import models
-
-class TestModel(models.Model):
-    """
-    Example Model.
-    """
-    record = models.CharField(max_length=10)
-    name = models.CharField(max_length=10, null=True, blank=True)
+    # data.txt
+    record  name
+    1 one
+    2 two
+    3 three
 
 
-# <yourscript>.py
-from etl_sync.loader import Loader
-from <yourproject>.models import TestModel
+    # main.py
+    from django.db import models
+    from etl_sync.loaders import Loader
 
-class YourLoader(Loader):
-    """
-    Add your specific settings here.
-    """
-    filename = 'data.txt'
-    model_class = TestModel
+    class TestModel(models.Model):
+        """
+        Example Model.
+        """
+        record = models.CharField(max_length=10)
+        name = models.CharField(max_length=10, null=True, blank=True)
+
+
+    class YourLoader(Loader):
+        """
+        Add your specific settings here.
+        """
+        filename = 'data.txt'
+        model_class = TestModel
+
 
     if __name__ == '__main__':
         loader = YourLoader()
         res = loader.load()
-```
 
 
-#### Minimal example: dictionary load
+Minimal example: dictionary load
+--------------------------------
+
+.. code-block:: python
+
+    # main.py
+    from etl_sync.generators import BaseInstanceGenerator
+    from <yourproject>.models import TestModel
+
+    dic = {'record': 3, 'name': 'three'}
+
+    if __name__ == '__main__':
+        # add additional transformations here
+        generator = BaseInstanceGenerator(TestModel, dic)
+        instance = generator.get_instance()
+        print(instance, generator.res)
 
 
-```python
-
-# <yourscript>.py
-from etl_sync.generators import BaseInstanceGenerator
-from <yourproject>.models import TestModel
-
-dic = {'record': 3, 'name': 'three'}
-
-if __name__ == '__main__':
-    # add additional transformations here
-    generator = BaseInstanceGenerator(TestModel, dic)
-    instance = generator.get_instance()
-    print(instance, generator.res)
-```
-
-
-### Persistence
+Persistence
+-----------
 
 **Unique fields**
 
@@ -154,32 +161,34 @@ remote_id field.</font>*
 Another method to add (or overwrite) persistence criterions is to add a 
 a list of fields via key word argument.
 
-```python
+... code-block:: python
+
     generator = InstanceGenerator(TestModel, dic, persistence = ['record', 'source'])
-```
 
 
 **Subclassing**
 
 You can subclass InstanceGenerator to create your own generator class.
 
-```python
-from etl_sync.generators import InstanceGenerator
+... code-bock:: python
 
-class MyGenerator(InstanceGenerator):
-    """
-    My generator class with costum persistence criterion.
-    """
-    persistence = ['record', 'source']
-```
+    from etl_sync.generators import InstanceGenerator
+
+    class MyGenerator(InstanceGenerator):
+        """
+        My generator class with custom persistence criterion.
+        """
+        persistence = ['record', 'source']
+
 
 **etl_persistence key in data dictionary**
 
 The last method is to put an extra key value pair in your data dictionary.
 
-```python
-dic = {'record': 6365, 'name': 'john', 'occupation': 'developer', 'etl_persistence': ['record']}
-```
+... code-block:: python
+
+    dic = {'record': 6365, 'name': 'john', 'occupation': 'developer', 'etl_persistence': ['record']}
+
 
 This technique is useful for nested records if the recursive call of
 InstanceGenerator cannot be
@@ -192,32 +201,36 @@ Once the variable **persistence** is overwritten the model field attributes
 will be ignored. Nevertheless, conflicts with your data definition will 
 through database errors. 
 
-### Error handling ###
+Error handling
+--------------
 
 If the Generator class is called within the Mapper class, errors will
 be caught and written to the defined logfile or to stdout. But the 
 loading process will continue. 
 
-## Readers ##
+Readers
+-------
 
 By default django-etl-sync uses the csv.DictReader, other reader 
 classes can be used or created if they are similar to csv.DictReader.
 
 The package currently contains a reader for OGR readable files.
 
-```python
-from etl_sync.generators import InstanceGenerator
-from etl_sync.readers import OGRReader
+.. code-block:: python
 
-class MyMapper(Mapper):
-    reader_class=OGRReader
-```
+    from etl_sync.generators import InstanceGenerator
+    from etl_sync.readers import OGRReader
 
-*The* ```OGRReader``` *covers the functionality of the older* ```ShapefileReader``` *.
-There is still a stub class called ShapefileReader for compatibility.
+    class MyMapper(Mapper):
+        reader_class=OGRReader
+
+
+*The* ``OGRReader`` *covers the functionality of the older* ``ShapefileReader``*.
+There is still a stub class called ``ShapefileReader`` for compatibility.
 It will be removed in version 1.0.*
 
-## Transformations
+Transformations
+---------------
 
 Transformations remap the dictionary from the CSV reader or
 another reader class to the Django model. We attempt to map the
@@ -227,24 +240,24 @@ records.
 
 Instantiate InstanceGenerator with a costumized Transformer class:
 
-```python
-from etl_sync.loaders import Loader
-from etl_sync.transformes import Transformer
+.. code-block: python
 
-class MyTransformer(Transformer):
-    mappings = {'id': 'record', 'name': 'last_name'}
-    defaults = {'last_name': 'Doe'}
-    forms = []
-    blacklist = {'last_name': ['NA', r'unknown']}
+    from etl_sync.loaders import Loader
+    from etl_sync.transformes import Transformer
 
-class MyMapper(InstanceGenerator):
-    model_class = {destination model}
-    transformer_class = MyTransformer
-    filename = myfile.txt
+    class MyTransformer(Transformer):
+        mappings = {'id': 'record', 'name': 'last_name'}
+        defaults = {'last_name': 'Doe'}
+        forms = []
+        blacklist = {'last_name': ['NA', r'unknown']}
 
-loader = MyLoader()
-loader.load()
-```
+    class MyMapper(InstanceGenerator):
+        model_class = {destination model}
+        transformer_class = MyTransformer
+        filename = myfile.txt
+
+    loader = MyLoader()
+    loader.load()
 
 * The `mapping` property contains a dictionary in the form `{‘original_fieldname’: ‘new_fieldname’}` which will remap the dictionary.
 * The `defaults` property holds a dictionary that gets applied if the value for the dictionary key in question is empty.
@@ -255,57 +268,56 @@ WARNING: These methods will be applied in exactly that order. If the dictionary 
 
 In addition to these built-in transformations, there are two additional methods that can be modified for more thorough changes:
 
-```python
-class MyTransformer(Transformer):
+.. code-block:: python
 
-    def transform(self, dic):
-        """Make whatever changes needed here."""
-        return dic
+    class MyTransformer(Transformer):
 
-    def validate(self, dic):
-        """Raise ValidationErrors"""
-        if last_name == 'Bunny':
-            raise ValidationError('I do not want to have this record')
-```
+        def transform(self, dic):
+            """Make whatever changes needed here."""
+            return dic
+
+        def validate(self, dic):
+            """Raise ValidationErrors"""
+            if last_name == 'Bunny':
+                raise ValidationError('I do not want to have this record')
 
 Both methods will be applied after the forementioned built-in methods.
 
 
-## Django form support
+Django form support
+-------------------
 
 Django-etl-sync fully support Django forms. You can reuse the Django forms from your
 project to bulk load data. See section “Transformations”.
 
 
-## Create transformer for related models
+Create transformer for related models
+-------------------------------------
 
-## Other strategies for loading normalized or related data
+Alternative strategies for loading normalized or related data
+-------------------------------------------------------------
 
-### Table dumps of related tables
+Table dumps of related tables
+-----------------------------
 
-### Creating related tables from same data source
+Creating related tables from same data source
+---------------------------------------------
 
-## File load
+File load
+---------
 
-## Logging
+Loging
+------
 
 Django-etl-sync will create a log file in the same location as the source file.
 It will contain the list of rejected records.
 
-```bash
-source_file.txt
-source_file.txt.2014-07-23.log
-```
+.. code-block: sh
+    source_file.txt
+    source_file.txt.2014-07-23.log
 
-
-## Roadmap
+Roadmap
+-------
 
 - Create readers for more source types, especially for comma limited data, and headerless CSV.
 - Add a way for data removal, if deleted from source.
-
-
-
-[travis-image]: https://travis-ci.org/postfalk/django-etl-sync.svg?branch=master
-[travis-link]: https://travis-ci.org/postfalk/django-etl-sync
-[coveralls-image]: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
-[coveralls-link]: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
