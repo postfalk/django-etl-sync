@@ -1,5 +1,5 @@
 """
-Classes for the generation of model instances from dictionaries.
+Generate model instances from dictionaries.
 """
 
 from __future__ import print_function
@@ -29,7 +29,7 @@ def get_unique_fields(model_class):
 def get_unambiguous_field(model_class):
     """
     Returns unambiguous field from Fk model. Uses 'name' as default.
-    This will be only successful ifvthere is ONLY one single CharField
+    This will be only successful if there is ONLY one single CharField
     or only one unique CharField. All other cases must be specified in
     more detail.
     """
@@ -53,12 +53,12 @@ def get_unambiguous_field(model_class):
     if ct_uniquechar == 1:
         return uniquecharfield
     raise ValidationError(
-        'Failure to identify single ForeignKey for {}'.format(model_class))
+        'Failure to identify unambiguous field for {}'.format(model_class))
 
 
 class BaseInstanceGenerator(object):
     """
-    Generates, evaluates, and saves instances from dictionary
+    Generates, evaluates, and saves model instances from dictionary
     or object.
     """
     hashfield = 'md5'
@@ -129,10 +129,9 @@ class BaseInstanceGenerator(object):
         """
         if not persistence:
             unique_fields = get_unique_fields(instance)
-            if unique_fields:
-                persistence = unique_fields
-            else:
+            if not unique_fields:
                 return 0, None
+            persistence = unique_fields
         qs = self._get_persistence_query(instance, persistence)
         return qs.count(), qs
 
@@ -220,22 +219,21 @@ class BaseInstanceGenerator(object):
             if count != 0:
                 self.res['exists'] = True
                 return qs[0]
-            else:
-                count, qs = self._check_persistence(
-                    model_instance, self.persistence)
-                try:
-                    model_instance = [
-                        self.create_in_db, self.update_in_db][count](
-                            model_instance, qs)
-                except IndexError:
-                    # TODO: Arriving in this branch means that more than one
-                    # record fulfills the persistence criterion.
-                    # Add error handling.
-                    string = ''
-                    for key in self.persistence:
-                        string += ', ' + key
-                    print('Double entry found for {}'.format(string))
-                    return model_instance
+            count, qs = self._check_persistence(
+                model_instance, self.persistence)
+            try:
+                model_instance = [
+                    self.create_in_db, self.update_in_db][count](
+                        model_instance, qs)
+            except IndexError:
+                # TODO: Arriving in this branch means that more than one
+                # record fulfills the persistence criterion.
+                # Add error handling.
+                string = ''
+                for key in self.persistence:
+                    string += ', ' + key
+                print('Double entry found for {}'.format(string))
+                return model_instance
             self._assign_related(
                 model_instance, self.related_instances, self.dic)
             return model_instance
@@ -243,8 +241,7 @@ class BaseInstanceGenerator(object):
 
 class InstanceGenerator(BaseInstanceGenerator):
     """
-    Instance generator that can take care of foreign key and many-to-many-
-    relationships as well as deal with other field attributes.
+    Instance generator, handles related fields.
     """
 
     def _prepare_field(self, field, value):
@@ -286,19 +283,18 @@ class InstanceGenerator(BaseInstanceGenerator):
     def _prepare_integer(self, field, value):
         if isinstance(value, int):
             return value
-        else:
-            try:
-                return int(value)
-            except (ValueError, TypeError):
-                pass
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            pass
 
     def _prepare_float(self, field, value):
-        if not isinstance(value, float):
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return None
-        return value
+        if isinstance(value, float):
+            return value
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            pass
 
     def _prepare_geometry(self, field, value):
         """
@@ -356,11 +352,7 @@ class InstanceGenerator(BaseInstanceGenerator):
                 setattr(model_instance, fieldname, fieldvalue)
             # TODO: more thoroughly explore cases where these exceptions are
             # necessary
-            except AttributeError:
-                pass
-            except ValueError:
-                pass
-            except TypeError:
+            except (AttributeError, ValueError, TypeError):
                 pass
         return model_instance
 
@@ -377,8 +369,10 @@ class RelInstanceGenerator(InstanceGenerator):
 
 class FkInstanceGenerator(RelInstanceGenerator):
     """
-    Prepares ForeignKey instances. Order of assignment attempts: 1. Instance,
-    2. Dictionary, 3. Integer, 4. Unique name or single field
+    Prepares ForeignKey instances.
+
+    Order of assignment attempts: 1. Instance,
+    2. Dictionary, 3. Integer, 4. Unique name or single field.
     """
 
     def __init__(self, field, dic, **kwargs):
@@ -387,7 +381,7 @@ class FkInstanceGenerator(RelInstanceGenerator):
         self.related_field = field.rel.field_name
         try:
             self.update = dic.pop('etl_update', False)
-        except(AttributeError):
+        except AttributeError:
             self.update = False
 
     def prepare(self, value):

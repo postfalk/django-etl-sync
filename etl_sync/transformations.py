@@ -42,8 +42,10 @@ class Transformer(object):
         return dictionary
 
     def check_blacklist(self, dic):
-        """Raise ValidationError if value or pattern is
-        black-listed."""
+        """
+        Raise ValidationError if value or pattern is
+        black-listed.
+        """
         for key, value in iteritems(self.blacklist):
             for v in value:
                 try:
