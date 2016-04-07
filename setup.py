@@ -14,7 +14,7 @@ setup(
     description="A ETL tool to sync API's with upstream data sources.",
     long_description=README,
     url='https://github.com/postfalk/django-etl-sync.git',
-    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.1',
+    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.1.1',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
     install_requires=['unicodecsv', 'future', 'six', 'builtins'],
