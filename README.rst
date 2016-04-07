@@ -15,6 +15,8 @@ Django-etl-sync derives ETL rules from Django model introspection and is able to
 
 The package currently lacks a method to move records no longer present in upstream data.
 
+The project was originall developed to manage upstream data sources for the Berkeley Ecoinformatics Engine, see https://ecoengine.berkeley.edu/. 
+
 
 Overview
 --------
