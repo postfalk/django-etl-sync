@@ -7,14 +7,14 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-etl-sync',
-    version='0.1.1',
+    version='0.2',
     packages=['etl_sync'],
     include_package_data=True,
     license='BSD License',
     description="A ETL tool to sync API's with upstream data sources.",
     long_description=README,
     url='https://github.com/postfalk/django-etl-sync.git',
-    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.1.1',
+    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.2',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
     install_requires=['unicodecsv', 'future', 'six', 'builtins'],
