@@ -5,12 +5,9 @@ Django ETL Sync
     :target: https://travis-ci.org/postfalk/django-etl-sync
 .. image:: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
     :target: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
-.. image:: https://pypip.in/v/postfalk/django-etl-sync/badge.png
-    :target: https://crate.io/packages/postfalk/django-etl-sync/
-    :alt: Latest PyPI version
-.. image:: https://pypip.in/d/postfalk/django-etl-sync/badge.png
-    :target: https://crate.io/packages/django-etl-sync/
-    :alt: Number of PyPI downloads
+.. image:: https://img.shields.io/pypi/v/django-etl_sync.svg
+    :target: https://pypi.python.org/pypi/django-etl_sync/:w
+    
 
 ETL based on Django model introspection.
 
