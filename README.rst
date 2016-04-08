@@ -5,18 +5,17 @@ Django ETL Sync
     :target: https://travis-ci.org/postfalk/django-etl-sync
 .. image:: https://coveralls.io/repos/postfalk/django-etl-sync/badge.png?branch=master
     :target: https://coveralls.io/r/postfalk/django-etl-sync?branch=master
-.. image:: https://pypip.in/v/$REPO/badge.png
-    :target: https://crate.io/packages/$REPO/
-    :alt: Latest PyPI version
-.. image:: https://pypip.in/d/$REPO/badge.png
-    :target: https://crate.io/packages/$REPO/
-    :alt: Number of PyPI downloads
+.. image:: https://img.shields.io/pypi/v/django-etl_sync.svg
+    :target: https://pypi.python.org/pypi/django-etl_sync/
+    
 
 ETL based on Django model introspection.
 
 Django-etl-sync derives ETL rules from Django model introspection and is able to trace and create relationships such as foreign keys and many-to-many relationship.
 
 The package currently lacks a method to move records no longer present in upstream data.
+
+The project was originall developed to manage upstream data sources for the Berkeley Ecoinformatics Engine, see https://ecoengine.berkeley.edu/. 
 
 
 Overview
