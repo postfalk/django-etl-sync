@@ -15,7 +15,7 @@ setup(
     download_url='https://github.com/postfalk/django-etl-sync/tarball/0.2.1',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
-    install_requires=['unicodecsv', 'future', 'six'],
+    install_requires=['future', 'six', 'backports.csv'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
