@@ -296,5 +296,5 @@ Roadmap
 -------
 
 - Create readers for more source types, especially for comma limited data, and headerless CSV.
-- Add a way for data removal, if deleted from source.
+- Add data removal, if deleted from source.
 - Improve Documentation, create documention on ReadTheDocs.
