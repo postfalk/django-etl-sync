@@ -384,24 +384,37 @@ class FkInstanceGenerator(RelInstanceGenerator):
         except AttributeError:
             self.update = False
 
+    def prepare_instance(self, value):
+        return value
+
+    def prepare_dict(self, value):
+        key = get_unambiguous_field(self.model_class)
+        if key in value and self.related_field == 'id':
+            self.persistence = [key]
+            fk_dic = value
+        return super(FkInstanceGenerator, self).prepare(fk_dic)
+
+    def prepare_int(self, value):
+        fk_dic = {self.related_field: value}
+        self.persistence = [self.related_field]
+        return super(FkInstanceGenerator, self).prepare(fk_dic)
+
+    def prepare_others(self, value):
+        key = get_unambiguous_field(self.model_class)
+        if self.related_field == 'id':
+            fk_dic = {key: value}
+            self.persistence = [key]
+        else:
+            fk_dic = {self.related_field: value}
+            self.persistence = [self.related_field]
+        return super(FkInstanceGenerator, self).prepare(fk_dic)
+
     def prepare(self, value):
         if value:
             if isinstance(value, self.model_class):
-                return value
+                return self.prepare_instance(value)
             if isinstance(value, dict):
-                key = get_unambiguous_field(self.model_class)
-                if key in value and self.related_field == 'id':
-                    self.persistence = [key]
-                fk_dic = value
-            elif isinstance(value, int):
-                fk_dic = {self.related_field: value}
-                self.persistence = [self.related_field]
-            else:
-                key = get_unambiguous_field(self.model_class)
-                if self.related_field == 'id':
-                    fk_dic = {key: value}
-                    self.persistence = [key]
-                else:
-                    fk_dic = {self.related_field: value}
-                    self.persistence = [self.related_field]
-            return super(FkInstanceGenerator, self).prepare(fk_dic)
+                return self.prepare_dict(value)
+            if isinstance(value, int):
+                return self.prepare_int(value)
+            return self.prepare_others(value)

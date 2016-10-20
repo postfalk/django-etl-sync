@@ -64,11 +64,8 @@ class Transformer(object):
     def remap(self, dic):
         """Use this method for remapping dictionary keys."""
         for key in self.mappings:
-            try:
-                dic[key] = dic[self.mappings[key]]
-                del dic[self.mappings[key]]
-            except KeyError:
-                pass
+            dic[key] = dic[self.mappings[key]]
+            del dic[self.mappings[key]]
         return dic
 
     def transform(self, dic):
