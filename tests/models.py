@@ -111,3 +111,15 @@ class GeometryModel(models.Model):
 class DateTimeModel(models.Model):
     datetimenotnull = models.DateTimeField()
     datetimenull = models.DateTimeField(null=True, blank=True)
+
+
+class WellDefinedModel(models.Model):
+    something = models.CharField(max_length=20)
+    somenumber = models.IntegerField()
+
+    class Meta:
+        unique_together = ('something', 'somenumber')
+
+
+class ParentModel(models.Model):
+    well_defined = models.ForeignKey(WellDefinedModel)

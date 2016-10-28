@@ -9,13 +9,14 @@ import warnings
 import os
 import glob
 from django.test import TestCase
+from django.db import models
 from django.core.exceptions import ValidationError
 from tests.models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
     Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
-    DateTimeModel, TestOnetoOneModel)
+    DateTimeModel, TestOnetoOneModel, WellDefinedModel, ParentModel)
 from etl_sync.generators import (
-    BaseInstanceGenerator, InstanceGenerator, get_unambiguous_field)
+    BaseInstanceGenerator, InstanceGenerator, get_unambiguous_fields)
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.mappers import Loader, FileReaderLogManager
 from etl_sync.readers import unicode_dic, ShapefileReader
@@ -23,6 +24,7 @@ from etl_sync.transformations import Transformer
 
 
 warnings.simplefilter('always', DeprecationWarning)
+
 
 class TestModule(TestCase):
 
@@ -409,12 +411,6 @@ class TestFeedbackCounter(TestCase):
         self.assertEqual(counter.created, 1)
 
 
-class TestFunctions(TestCase):
-
-    def test_get_umabiguous_field(self):
-        self.assertEqual(get_unambiguous_field(Numero), 'name')
-
-
 class TestTransformer(TestCase):
 
     def helper(self, transformer):
@@ -606,3 +602,44 @@ class TestPreparations(TestCase):
              'datetimenull': ''})
         generator.get_instance()
         self.assertTrue(generator.res['created'])
+
+
+class TestUmambiguousField(TestCase):
+
+    def test_umambigous(self):
+        for item in [
+            ElNumero, Nombre, TestModel, TestModelWoFk,
+            Numero, SomeModel, GeometryModel,
+            TestOnetoOneModel
+        ]:
+            self.assertEqual(get_unambiguous_fields(item), ['name'])
+        for item in [Polish, AnotherModel]:
+            self.assertEqual(get_unambiguous_fields(item), ['record'])
+        self.assertEqual(get_unambiguous_fields(IntermediateModel), ['attribute'])
+        self.assertEqual(get_unambiguous_fields(WellDefinedModel), ['something', 'somenumber'])
+
+
+class TestDictAsForeignKey(TestCase):
+
+    def test_complex_dict(self):
+        generator = InstanceGenerator(
+            ParentModel,
+            {'well_defined': {'something': 'donkey', 'somenumber': 1}})
+        for item in range(0, 2):
+            instance = generator.get_instance()
+            self.assertEqual(instance.well_defined.somenumber, 1)
+            self.assertEqual(instance.well_defined.something, 'donkey')
+        qs = WellDefinedModel.objects.all()
+        self.assertEqual(qs.count(), 1)
+        generator=InstanceGenerator(
+            ParentModel,
+            {'well_defined': {'something': 'donkey', 'somenumber': 2}})
+        generator.get_instance()
+        qs = WellDefinedModel.objects.all()
+        self.assertEqual(qs.count(), 2)
+        with self.assertRaises(ValidationError):
+            generator=InstanceGenerator(
+                ParentModel,
+                {'well_defined': {
+                    'something': 'horse', 'somenumber': 2, 'etl_create': False}})
+            generator.get_instance()

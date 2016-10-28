@@ -26,20 +26,23 @@ def get_unique_fields(model_class):
     return ret
 
 
-def get_unambiguous_field(model_class):
+def get_unambiguous_fields(model_class):
     """
     Returns unambiguous field from Fk model. Uses 'name' as default.
     This will be only successful if there is ONLY one single CharField
     or only one unique CharField. All other cases must be specified in
     more detail.
     """
+    unique_together = model_class._meta.unique_together
+    if unique_together and len(unique_together) == 1:
+        return list(unique_together[0])
     ct_char = 0
     ct_uniquechar = 0
     for f in model_class._meta.fields:
         test = (f.get_internal_type() == 'CharField')
         if test and ct_char < 2:
             if f.name == 'name':
-                return 'name'
+                return ['name']
             ct_char += 1
             charfield = f.name
         if f.unique and test:
@@ -49,9 +52,9 @@ def get_unambiguous_field(model_class):
             else:
                 break
     if ct_char == 1:
-        return charfield
+        return [charfield]
     if ct_uniquechar == 1:
-        return uniquecharfield
+        return [uniquecharfield]
     raise ValidationError(
         'Failure to identify unambiguous field for {}'.format(model_class))
 
@@ -388,11 +391,15 @@ class FkInstanceGenerator(RelInstanceGenerator):
         return value
 
     def prepare_dict(self, value):
-        key = get_unambiguous_field(self.model_class)
-        if key in value and self.related_field == 'id':
-            self.persistence = [key]
+        keys = get_unambiguous_fields(self.model_class)
+        if all(key in value for key in keys) and self.related_field == 'id':
+            self.persistence = keys
             fk_dic = value
-        return super(FkInstanceGenerator, self).prepare(fk_dic)
+            return super(FkInstanceGenerator, self).prepare(fk_dic)
+        else:
+            raise ValidationError(
+                'Failure to identify unambiguous fields for {}'
+                ''.format(self.model_class))
 
     def prepare_int(self, value):
         fk_dic = {self.related_field: value}
@@ -400,14 +407,20 @@ class FkInstanceGenerator(RelInstanceGenerator):
         return super(FkInstanceGenerator, self).prepare(fk_dic)
 
     def prepare_others(self, value):
-        key = get_unambiguous_field(self.model_class)
-        if self.related_field == 'id':
-            fk_dic = {key: value}
-            self.persistence = [key]
+        keys = get_unambiguous_fields(self.model_class)
+        if len(keys) == 1:
+            key = keys[0]
+            if self.related_field == 'id':
+                fk_dic = {key: value}
+                self.persistence = [key]
+            else:
+                fk_dic = {self.related_field: value}
+                self.persistence = [self.related_field]
+            return super(FkInstanceGenerator, self).prepare(fk_dic)
         else:
-            fk_dic = {self.related_field: value}
-            self.persistence = [self.related_field]
-        return super(FkInstanceGenerator, self).prepare(fk_dic)
+            raise ValidationError(
+                 'Failure to identify unambiguous fields for {}'
+                 ''.format(self.model_class))
 
     def prepare(self, value):
         if value:
