@@ -398,7 +398,7 @@ class FkInstanceGenerator(RelInstanceGenerator):
             return super(FkInstanceGenerator, self).prepare(fk_dic)
         else:
             raise ValidationError(
-                'Failure to identify unambiguous fields for {}'
+                'Related object cannot be determined for {}'
                 ''.format(self.model_class))
 
     def prepare_int(self, value):

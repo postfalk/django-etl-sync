@@ -202,6 +202,12 @@ class Loader(object):
         except:
             pass
         self.logfilename = get_logfilename(self.filename)
+        self.extractor = self.extractor_class(
+            self.filename,
+            logname=self.logfilename,
+            reader_class=self.reader_class,
+            reader_kwargs=self.reader_kwargs,
+            encoding=self.encoding)
 
     def _log(self, text):
         """
@@ -214,11 +220,7 @@ class Loader(object):
         Loads data into database using Django models and error logging.
         """
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
-        with self.extractor_class(self.filename,
-                       logname=self.logfilename,
-                       reader_class=self.reader_class,
-                       reader_kwargs=self.reader_kwargs,
-                       encoding=self.encoding) as extractor:
+        with self.extractor as extractor:
             extractor.log(
                 'Data extraction started {0}\n\nStart line: '
                 '{1}\nEnd line: {2}\n'.format(
