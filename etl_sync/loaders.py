@@ -16,7 +16,7 @@ from etl_sync.transformations import Transformer
 
 def get_logfilename(filename):
     ret = None
-    if isinstance(filename, (unicode, str)):
+    if isinstance(filename, (text, str)):
         ret = os.path.join(
             os.path.dirname(filename), '{0}.{1}.log'.format(
             filename, datetime.now().strftime('%Y-%m-%d')))

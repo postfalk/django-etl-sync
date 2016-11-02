@@ -2,8 +2,8 @@
 from __future__ import print_function, absolute_import
 from six import text_type
 from future.utils import iteritems
+from builtins import str as text
 
-# deal with Deprecation warnings
 import warnings
 
 import os
@@ -329,6 +329,7 @@ class TestMapper(TestCase):
     """Tests for restructured mapper."""
 
     def test_deprication_warning(self):
+        FileReaderLogManager('test.txt')
         warnings.simplefilter('always')
         with warnings.catch_warnings(record=True) as warn:
             Mapper()
@@ -337,14 +338,12 @@ class TestMapper(TestCase):
             self.assertEqual(len(warn), 2)
             Loader()
             self.assertEqual(len(warn), 2)
-            FileReaderLogManager('test.txt')
-            self.assertEqual(len(warn), 3)
             Loader(reader_class='test')
-            self.assertEqual(len(warn), 4)
+            self.assertEqual(len(warn), 3)
             Loader(reader_kwargs={})
-            self.assertEqual(len(warn), 5)
+            self.assertEqual(len(warn), 4)
             Loader(encoding='utf8')
-            self.assertEqual(len(warn), 6)
+            self.assertEqual(len(warn), 5)
 
 
 class TestLoad(TestCase):
@@ -674,7 +673,7 @@ class TestExtractor(TestCase):
 
     def test_filelikeobject(self):
         with open(self.filename) as fil:
-            content = StringIO(initial_value=unicode(fil.read()))
+            content = StringIO(initial_value=text_type(fil.read()))
         extractor = Extractor(content)
         with extractor as ex:
             ct = 0
@@ -693,7 +692,7 @@ class TestFileLikeObjectInLoader(TestCase):
 
     def test_filelikeobject(self):
         with open(self.filename) as fil:
-            content = StringIO(initial_value=unicode(fil.read()))
+            content = StringIO(initial_value=text_type(fil.read()))
         loader = Loader(filename=content, model_class=TestModel)
         loader.load()
         self.assertEqual(TestModel.objects.all().count(), 3)
