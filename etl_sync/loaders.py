@@ -1,6 +1,6 @@
 from __future__ import print_function
 from backports import csv
-from io import open
+from io import open, StringIO
 from builtins import str as text
 
 import warnings
@@ -15,10 +15,12 @@ from etl_sync.transformations import Transformer
 
 
 def get_logfilename(filename):
-    if filename:
-        return os.path.join(
+    ret = None
+    if isinstance(filename, (unicode, str)):
+        ret = os.path.join(
             os.path.dirname(filename), '{0}.{1}.log'.format(
             filename, datetime.now().strftime('%Y-%m-%d')))
+    return ret
 
 
 class FeedbackCounter(object):
@@ -90,22 +92,37 @@ class FeedbackCounter(object):
 
 class Extractor(object):
     """
-    Context manager, creates the reader and handles files.
+    Context manager, creates the reader and handles files. This seems
+    to be necessary since arguments to CSVDictReader require to be set
+    on initialization.
+
+    Return reader instance.
     """
+    # TODO Make this duck-type compatible with CSV reader
+    # so that the reader can be used straight up if no options required.
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     encoding = 'utf-8'
-    logname = None
+    logname = None #  Depricate, there is no need to keep this with the
+                   #  Extractor class
 
-    def __init__(self, filename, logname=None, reader_class=None,
+    def __init__(self, source, logname=None, reader_class=None,
                  reader_kwargs = {}, encoding=None):
-        self.filename = filename
-        self.logname = logname or self.logname or get_logfilename(filename)  # deprecate kwarg
+        self.source = source
+        # TODO: fix this ugly patch
+        logname = logname or get_logfilename(source)  # deprecate kwarg
         self.reader_class = reader_class or self.reader_class  # deprecate kwarg
         self.reader_kwargs = reader_kwargs or self.reader_kwargs  # deprecate kwarg
         self.encoding = encoding or self.encoding  # deprecate kwarg
         self.fil = None
         self.logfile = None
+        try:
+            if logname:
+                self.logfile = open(logname, 'w')
+            else:
+                self.logfile = None
+        except TypeError:
+            pass
 
     def _log(self, tex):
         """
@@ -115,17 +132,19 @@ class Extractor(object):
 
     def __enter__(self):
         """
-        Passes file object to reader class as required by csv.Reader.
-        On failure pass path to reader class and see whether it can be
-        handled there. Allows for non-text data sources or directories.
+        Checks whether source is file object as required by csv.Reader.
+        If not, it passes path to reader class. Implement file handling
+        in your own reader class. Allows for non-text data sources or
+        directories (see e.g. OGRReader)
         """
-        self.logfile = open(self.logname, 'w')
-        try:
-            self.fil = open(self.filename, 'r')
-        except IOError:
-            reader = self.reader_class(self.filename, **self.reader_kwargs)
+        if not hasattr(self.source, 'read'):
+            try:
+                fil = open(self.source)
+            except IOError:
+                return None
         else:
-            reader = self.reader_class(self.fil, **self.reader_kwargs)
+            fil = self.source
+        reader = self.reader_class(fil, **self.reader_kwargs)
         reader.log = self._log
         return reader
 
@@ -267,3 +286,9 @@ class Loader(object):
                     counter.use_result(generator.res)
             extractor.log(counter.finished())
         return 'finished'
+
+
+# class FileObjectLoader(Loader):
+#    """This will be the new loader class working with FileLikeObjects."""
+#
+#    def __init__(self):

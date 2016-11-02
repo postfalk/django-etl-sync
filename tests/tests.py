@@ -8,8 +8,8 @@ import warnings
 
 import os
 import glob
+from io import StringIO
 from django.test import TestCase
-from django.db import models
 from django.core.exceptions import ValidationError
 from tests.models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
@@ -18,7 +18,7 @@ from tests.models import (
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator, get_unambiguous_fields)
 from etl_sync.mappers import Mapper, FeedbackCounter
-from etl_sync.mappers import Loader, FileReaderLogManager
+from etl_sync.loaders import Loader, FileReaderLogManager, Extractor
 from etl_sync.readers import unicode_dic, ShapefileReader
 from etl_sync.transformations import Transformer
 
@@ -87,7 +87,8 @@ class TestModule(TestCase):
             {'record': '7', 'name': 'test', 'numero': '1'}
         ]
         for dic in dics:
-            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator = InstanceGenerator(
+                TestModel, dic, persistence='record')
             generator.get_instance()
         res = Nombre.objects.all()
         self.assertEqual(res.count(), 5)
@@ -108,7 +109,8 @@ class TestModule(TestCase):
              'expect': False}
         ]
         for dic in dics:
-            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator = InstanceGenerator(
+                TestModel, dic, persistence='record')
             if dic['expect']:
                 generator.get_instance()
             else:
@@ -136,7 +138,8 @@ class TestModule(TestCase):
                 'nombre': 'quatre', 'numero': 'cinque'},
         ]
         for dic in dics:
-            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator = InstanceGenerator(
+                TestModel, dic, persistence='record')
             generator.get_instance()
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 3)
@@ -161,7 +164,8 @@ class TestModule(TestCase):
                 ],
                 'numero': 'tre'}]
         for dic in dics:
-            generator = InstanceGenerator(TestModel, dic, persistence='record')
+            generator = InstanceGenerator(
+                TestModel, dic, persistence='record')
             generator.get_instance()
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)
@@ -193,7 +197,8 @@ class TestModule(TestCase):
             {'record': '7', 'name': 'test', 'numero': '1'}
         ]
         for dic in dics:
-            generator = InstanceGenerator(TestOnetoOneModel, dic, persistence='record')
+            generator = InstanceGenerator(
+                TestOnetoOneModel, dic, persistence='record')
             generator.get_instance()
         res = Nombre.objects.all()
         self.assertEqual(res.count(), 5)
@@ -201,7 +206,7 @@ class TestModule(TestCase):
         self.assertEqual(res.count(), 7)
         rec1 = res.filter(record='1')[0]
         self.assertEqual(rec1.nombre.name, 'dos')
-        #OneToOneField has the related object as a property
+        # OneToOneField has the related object as a property
         self.assertEqual(rec1.nombre.testonetoonemodel, rec1)
         res.delete()
 
@@ -356,7 +361,7 @@ class TestLoad(TestCase):
         (os.remove(fil) for fil in files)
 
     def test_load_from_file(self):
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter('always')
             path = os.path.dirname(os.path.realpath(__file__))
             filename = '{0}/data.txt'.format(path)
@@ -476,7 +481,8 @@ class TestUpdate(TestCase):
         Test record update.
         """
         dic = {'record': '100', 'numero': 'cento', 'zahl': 'hundert'}
-        generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+        generator = InstanceGenerator(
+            HashTestModel, dic, persistence='record')
         res = generator.get_instance()
         self.assertEqual(res.numero.name, 'cento')
         self.assertTrue(generator.res['created'])
@@ -486,7 +492,8 @@ class TestUpdate(TestCase):
         self.assertFalse(generator.res['updated'])
         self.assertTrue(generator.res['exists'])
         dic = {'record': '100', 'numero': 'hundert', 'zahl': 'hundert'}
-        generator = InstanceGenerator(HashTestModel, dic, persistence='record')
+        generator = InstanceGenerator(
+            HashTestModel, dic, persistence='record')
         res = generator.get_instance()
         self.assertTrue(generator.res['updated'])
         self.assertEqual(res.numero.name, 'hundert')
@@ -615,8 +622,11 @@ class TestUmambiguousField(TestCase):
             self.assertEqual(get_unambiguous_fields(item), ['name'])
         for item in [Polish, AnotherModel]:
             self.assertEqual(get_unambiguous_fields(item), ['record'])
-        self.assertEqual(get_unambiguous_fields(IntermediateModel), ['attribute'])
-        self.assertEqual(get_unambiguous_fields(WellDefinedModel), ['something', 'somenumber'])
+        self.assertEqual(
+            get_unambiguous_fields(IntermediateModel), ['attribute'])
+        self.assertEqual(
+            get_unambiguous_fields(WellDefinedModel),
+            ['something', 'somenumber'])
 
 
 class TestDictAsForeignKey(TestCase):
@@ -641,5 +651,50 @@ class TestDictAsForeignKey(TestCase):
             generator=InstanceGenerator(
                 ParentModel,
                 {'well_defined': {
-                    'something': 'horse', 'somenumber': 2, 'etl_create': False}})
+                    'something': 'horse', 'somenumber': 2,
+                    'etl_create': False}})
             generator.get_instance()
+
+class TestExtractor(TestCase):
+    """Test newly introduced ExtractorClass."""
+
+    def setUp(self):
+        self.filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'data.txt')
+
+    def test_fileload(self):
+        extractor = Extractor(self.filename)
+        with extractor as ex:
+            ct = 0
+            for item in ex:
+                ct += 1
+                self.assertTrue(isinstance(item, dict))
+            self.assertEqual(ct, 3)
+            ct = 0
+
+    def test_filelikeobject(self):
+        with open(self.filename) as fil:
+            content = StringIO(initial_value=unicode(fil.read()))
+        extractor = Extractor(content)
+        with extractor as ex:
+            ct = 0
+            for item in ex:
+                ct += 1
+                self.assertTrue(isinstance(item, dict))
+            self.assertEqual(ct, 3)
+            ct = 0
+
+
+class TestFileLikeObjectInLoader(TestCase):
+
+    def setUp(self):
+        self.filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'data.txt')
+
+    def test_filelikeobject(self):
+        with open(self.filename) as fil:
+            content = StringIO(initial_value=unicode(fil.read()))
+        loader = Loader(filename=content, model_class=TestModel)
+        loader.load()
+        self.assertEqual(TestModel.objects.all().count(), 3)
+
