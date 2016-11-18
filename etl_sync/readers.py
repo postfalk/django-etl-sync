@@ -65,8 +65,9 @@ class OGRReader(object):
         else:
             ret = unicode_dic(ret, self.encoding)
             ogr_geom = feature.geometry()
-            ogr_geom.Transform(self.transform)
-            ret['geometry'] = ogr_geom.ExportToWkt()
+            if ogr_geom:
+                ogr_geom.Transform(self.transform)
+                ret['geometry'] = ogr_geom.ExportToWkt()
             return ret
 
 
