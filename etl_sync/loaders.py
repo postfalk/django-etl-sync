@@ -220,7 +220,7 @@ class Loader(object):
             self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
         except:
             pass
-        self.logfilename = get_logfilename(self.filename)
+        self.logfilename = self.logfilename or get_logfilename(self.filename)
         self.extractor = self.extractor_class(
             self.filename,
             logname=self.logfilename,
