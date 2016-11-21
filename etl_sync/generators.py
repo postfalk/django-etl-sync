@@ -391,6 +391,8 @@ class FkInstanceGenerator(RelInstanceGenerator):
         return value
 
     def prepare_dict(self, value):
+        if self.persistence:
+            return super(FkInstanceGenerator, self).prepare(value)
         keys = get_unambiguous_fields(self.model_class)
         if all(key in value for key in keys) and self.related_field == 'id':
             self.persistence = keys

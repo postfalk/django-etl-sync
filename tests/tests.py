@@ -654,6 +654,15 @@ class TestDictAsForeignKey(TestCase):
                     'etl_create': False}})
             generator.get_instance()
 
+    def test_dic_with_etl_persistence(self):
+       generator = InstanceGenerator(
+            ParentModel,
+            {'well_defined': {'something': 'donkey', 'somenumber': 1}})
+       instance = generator.get_instance()
+       print('HERE', generator.persistence)
+
+
+
 class TestExtractor(TestCase):
     """Test newly introduced ExtractorClass."""
 
