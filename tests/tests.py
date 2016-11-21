@@ -1,5 +1,5 @@
 # Python 3.x compatibility
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
 from six import text_type
 from future.utils import iteritems
 from builtins import str as text
@@ -47,8 +47,8 @@ class TestModule(TestCase):
         res.delete()
         # test with persistence criterion
         for dic in dics:
-            generator = BaseInstanceGenerator(TestModelWoFk, dic,
-                                              persistence='record')
+            generator = BaseInstanceGenerator(
+                TestModelWoFk, dic, persistence='record')
             generator.get_instance()
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 3)
@@ -244,7 +244,7 @@ class TestModule(TestCase):
             try:
                 generator.get_instance()
             except:
-                print(dic)
+                pass
         res = HashTestModel.objects.all()
         self.assertEqual(res.count(), 2)
         self.assertEqual(res.filter(record='40')[0].numero.name, 'due')
@@ -653,14 +653,6 @@ class TestDictAsForeignKey(TestCase):
                     'something': 'horse', 'somenumber': 2,
                     'etl_create': False}})
             generator.get_instance()
-
-    def test_dic_with_etl_persistence(self):
-       generator = InstanceGenerator(
-            ParentModel,
-            {'well_defined': {'something': 'donkey', 'somenumber': 1}})
-       instance = generator.get_instance()
-       print('HERE', generator.persistence)
-
 
 
 class TestExtractor(TestCase):

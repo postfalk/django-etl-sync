@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import os
 import sys
-
 import django
 from django.conf import settings
-
-import warnings
 
 # put this here for now as long as we support Django 1.6.5
 os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
