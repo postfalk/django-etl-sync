@@ -8,18 +8,14 @@ from builtins import str as text
 from future.utils import iteritems
 
 from hashlib import md5
+from django.utils import version
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Model
+from django.db.models import Q, Model, FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField
 
 
-def get_fields(model_class):
-    """This is a wrapper for backwards compatibility with Django 1.7."""
-    try:
-        return model_class._meta.get_fields()
-    except AttributeError:
-        return model_class._meta.fields
+VERSION = version.get_version()[2]
 
 
 def get_internal_type(field):
@@ -29,6 +25,29 @@ def get_internal_type(field):
         return field.get_internal_type()
     except AttributeError:
         return None
+
+
+def set_model_attribute(instance, field, value):
+    """This is a wrapper for backwards compatibility with Django 1.7."""
+    if get_internal_type(field) in ['ManyToManyField']:
+        pass
+    else:
+        setattr(instance, field.name, value)
+
+
+def get_fields(model_class):
+    """This is a wrapper for backwards compatibility with Django 1.7.
+    It is currently not fully compatible for performance reasons."""
+    try:
+        return model_class._meta.get_fields()
+    except AttributeError:
+        ret = []
+        for fn in model_class._meta.get_all_field_names():
+            try:
+                ret.append(model_class._meta.get_field(fn))
+            except FieldDoesNotExist:
+                pass
+        return ret
 
 
 def get_unique_fields(model_class):
@@ -360,15 +379,12 @@ class InstanceGenerator(BaseInstanceGenerator):
                 continue
             fieldtype = get_internal_type(field)
             try:
-                fieldvalue = self.preparations[fieldtype](
+                value = self.preparations[fieldtype](
                     self, field, dic[field.name])
             except KeyError:
-                fieldvalue = dic[field.name]
+                value = dic[field.name]
             try:
-                if fieldtype in ['ManyToManyField']:
-                    pass
-                else:
-                    setattr(model_instance, field.name, fieldvalue)
+                set_model_attribute(model_instance, field, value)
             except (AttributeError, ValueError, TypeError):
                 pass
         return model_instance

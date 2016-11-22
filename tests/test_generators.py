@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
+from django.utils import version
 from django.core.exceptions import ValidationError
 from unittest import TestCase
 from tests import models
 from etl_sync.generators import (
-    get_unique_fields, get_unambiguous_fields)
+    get_unique_fields, get_unambiguous_fields, get_fields)
 
+
+VERSION = version.get_version()[2]
 
 class TestUtils(TestCase):
 
@@ -31,3 +34,11 @@ class TestUtils(TestCase):
             ['something', 'somenumber'])
         with self.assertRaises(ValidationError):
             get_unambiguous_fields(models.HashTestModel)
+
+    def test_get_fields(self):
+        length = len(get_fields(models.SomeModel))
+        if VERSION == '7':
+            self.assertEqual(length, 4)
+        else:
+            self.assertEqual(length, 5)
+

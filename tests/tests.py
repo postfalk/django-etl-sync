@@ -38,17 +38,15 @@ class TestModule(TestCase):
         ]
         # test without persistence criterion
         for dic in dics:
-            generator = BaseInstanceGenerator(TestModelWoFk, dic)
-            generator.get_instance()
+            BaseInstanceGenerator(TestModelWoFk, dic).get_instance()
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 6)
         self.assertEqual(res.filter(record='1')[0].name, 'one')
         res.delete()
         # test with persistence criterion
         for dic in dics:
-            generator = BaseInstanceGenerator(
-                TestModelWoFk, dic, persistence='record')
-            generator.get_instance()
+            BaseInstanceGenerator(
+                TestModelWoFk, dic, persistence='record').get_instance()
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 3)
         self.assertEqual(res.filter(record='1')[0].name, 'one again')
@@ -57,9 +55,8 @@ class TestModule(TestCase):
         res.delete()
         # test with double persistence criterion
         for dic in dics:
-            generator = BaseInstanceGenerator(TestModelWoFk, dic,
-                                              persistence=['record', 'name'])
-            generator.get_instance()
+            BaseInstanceGenerator(
+                TestModelWoFk, dic, persistence=['record', 'name']).get_instance()
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 4)
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
