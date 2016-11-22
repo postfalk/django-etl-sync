@@ -46,7 +46,9 @@ def get_unambiguous_fields(model_class):
     fields = get_fields(model_class)
     char_fields = [
         field for field in fields
-        if field.get_internal_type() == 'CharField']
+        # this check for attribute is necessary for Django==1.8.16
+        if hasattr(field, 'get_internal_type') and
+        field.get_internal_type() == 'CharField']
     name_field = [field.name for field in char_fields if field.name == 'name']
     if name_field:
         return name_field
