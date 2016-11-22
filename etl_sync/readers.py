@@ -5,9 +5,18 @@ from future.utils import iteritems
 import warnings
 from osgeo import osr, ogr
 
+
 def unicode_dic(dic, encoding):
     """
-    Decodes bytes dictionary to unicode with given encoding.
+    Decodes bytes dictionaries to unicode dictionary with given encoding.
+
+    Args:
+        dic (dict): A dictionary.
+        encoding (str): String with encoding acronym.
+
+    Returns:
+        dic
+
     """
     new_dic = {}
     for key, value in iteritems(dic):

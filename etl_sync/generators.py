@@ -76,7 +76,8 @@ def get_unambiguous_fields(model_class):
         return name_field
     if len(char_fields) == 1:
         return [f.name for f in char_fields]
-    unique_char_fields = [f.name for f in char_fields if getattr(f, 'unique', None)]
+    unique_char_fields = [
+        f.name for f in char_fields if getattr(f, 'unique', None)]
     if len(unique_char_fields) == 1:
         return unique_char_fields
     raise ValidationError(
