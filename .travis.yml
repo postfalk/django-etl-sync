@@ -8,9 +8,10 @@ before_install:
  - "sudo apt-get install -qq -y libgdal-dev libgeos-dev libproj-dev spatialite-bin python-dev python3-dev"
 env:
     # - DJANGO_VERSION=1.6.5
- - DJANGO_VERSION=1.7
- - DJANGO_VERSION=1.8.5
- - DJANGO_VERSION=1.9.5
+ - DJANGO_VERSION=1.7.0
+ - DJANGO_VERSION=1.8.16
+ - DJANGO_VERSION=1.9.11
+ - DJANGO_VERSION=1.10.3
 virtualenv:
  system_site_packages: true
 install: 

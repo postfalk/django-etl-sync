@@ -15,6 +15,15 @@ from django.forms.models import model_to_dict
 from django.forms import DateTimeField
 
 
+def get_fields(model_class):
+    """This is a wrapper for backwards compatibility with
+    Django 1.7."""
+    try:
+        return model_class._meta.get_fields()
+    except AttributeError:
+        return [fn for fn in model_class._meta.fields]
+
+
 def get_unique_fields(model_class):
     """
     Return model fields with unique=True.
@@ -34,7 +43,7 @@ def get_unambiguous_fields(model_class):
     unique_together = model_class._meta.unique_together
     if len(unique_together) == 1:
         return list(unique_together[0])
-    fields = model_class._meta.get_fields()
+    fields = get_fields(model_class)
     char_fields = [
         field for field in fields
         if field.get_internal_type() == 'CharField']
