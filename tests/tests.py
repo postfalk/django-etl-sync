@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 from six import text_type
 from future.utils import iteritems
-from builtins import str as text
 
 import warnings
 
@@ -13,13 +12,13 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from tests.models import (
     ElNumero, HashTestModel, Nombre, Polish, TestModel, TestModelWoFk,
-    Numero, SomeModel, AnotherModel, IntermediateModel, GeometryModel,
+    SomeModel, AnotherModel, IntermediateModel, GeometryModel,
     DateTimeModel, TestOnetoOneModel, WellDefinedModel, ParentModel)
 from etl_sync.generators import (
-    BaseInstanceGenerator, InstanceGenerator, get_unambiguous_fields)
+    BaseInstanceGenerator, InstanceGenerator)
 from etl_sync.mappers import Mapper, FeedbackCounter
 from etl_sync.loaders import Loader, FileReaderLogManager, Extractor
-from etl_sync.readers import unicode_dic, ShapefileReader
+from etl_sync.readers import unicode_dic, ShapefileReader, OGRReader
 from etl_sync.transformations import Transformer
 
 
@@ -329,7 +328,7 @@ class TestMapper(TestCase):
     """Tests for restructured mapper."""
 
     def test_deprication_warning(self):
-        FileReaderLogManager('test.txt')
+        Extractor('test.txt')
         warnings.simplefilter('always')
         with warnings.catch_warnings(record=True) as warn:
             Mapper()
@@ -374,6 +373,10 @@ class TestReaders(TestCase):
     Test readers, encoding problems in particular.
     """
 
+    def setUp(self):
+        path = os.path.dirname(os.path.realpath(__file__))
+        self.testfilename = os.path.join(path, 'test_shapefile.shp')
+
     def test_dic_decoder(self):
         testdic = {
             'word': b'testword', 'number': 68898, 'utf8': b'testing\xc2\xa0'}
@@ -382,14 +385,22 @@ class TestReaders(TestCase):
         for k, v in iteritems(dic):
             self.assertIsInstance(k, text_type)
 
-    def test_shapefile_reader(self):
-        path = os.path.dirname(os.path.realpath(__file__))
-        testfilename = os.path.join(path, 'test_shapefile.shp')
-        reader = ShapefileReader(testfilename)
+    def test_ogr_reader(self):
+        reader = OGRReader(self.testfilename)
         dic = reader.next()
         self.assertEqual(dic['text'], u'three')
         dic = reader.next()
         self.assertEqual(dic['text'], u'two')
+
+
+    def test_deprecated_shapefile_readr(self):
+        with warnings.catch_warnings(record=True) as w:
+            reader = ShapefileReader(self.testfilename)
+            self.assertEqual(w[-1].category, DeprecationWarning)
+            dic = reader.next()
+            self.assertEqual(dic['text'], u'three')
+            dic = reader.next()
+            self.assertEqual(dic['text'], u'two')
 
 
 class TestFeedbackCounter(TestCase):

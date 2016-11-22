@@ -10,18 +10,25 @@ from future.utils import iteritems
 from hashlib import md5
 from django.core.exceptions import ValidationError
 from django.db.models import Q, Model
-from django.db.models.options import FieldDoesNotExist
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField
 
 
 def get_fields(model_class):
-    """This is a wrapper for backwards compatibility with
-    Django 1.7."""
+    """This is a wrapper for backwards compatibility with Django 1.7."""
     try:
         return model_class._meta.get_fields()
     except AttributeError:
-        return [fn for fn in model_class._meta.fields]
+        return model_class._meta.fields
+
+
+def get_internal_type(field):
+    """This is a wrapper for compatibility with Django 1.8.16. It works
+    with fields that don't have a .get_internal_type attribute"""
+    try:
+        return field.get_internal_type()
+    except AttributeError:
+        return None
 
 
 def get_unique_fields(model_class):
@@ -29,8 +36,8 @@ def get_unique_fields(model_class):
     Return model fields with unique=True.
     """
     return [
-        field.name for field in model_class._meta.fields
-        if field.unique and not field.name == 'id']
+        f.name for f in model_class._meta.fields
+        if f.unique and not f.name == 'id']
 
 
 def get_unambiguous_fields(model_class):
@@ -44,19 +51,13 @@ def get_unambiguous_fields(model_class):
     if len(unique_together) == 1:
         return list(unique_together[0])
     fields = get_fields(model_class)
-    char_fields = [
-        field for field in fields
-        # this check for attribute is necessary for Django==1.8.16
-        if hasattr(field, 'get_internal_type') and
-        field.get_internal_type() == 'CharField']
-    name_field = [field.name for field in char_fields if field.name == 'name']
+    char_fields = [f for f in fields if get_internal_type(f) == 'CharField']
+    name_field = [f.name for f in char_fields if f.name == 'name']
     if name_field:
         return name_field
     if len(char_fields) == 1:
-        return [field.name for field in char_fields]
-    unique_char_fields = [
-        field.name for field in char_fields
-        if getattr(field, 'unique', None)]
+        return [f.name for f in char_fields]
+    unique_char_fields = [f.name for f in char_fields if getattr(f, 'unique', None)]
     if len(unique_char_fields) == 1:
         return unique_char_fields
     raise ValidationError(
@@ -94,8 +95,15 @@ class BaseInstanceGenerator(object):
         self.related_instances = {}
 
     def hash_instance(self, instance):
-        """
-        Hash extracted dictionary. Override if you like.
+        # TODO: recreate as pure function
+        """Hash extracted dictionary. Override if you like.
+
+        Args:
+            instance (models.Model):
+
+        Returns:
+            md5.hexdigest
+
         """
         out = u''
         for field in instance._meta.fields:
@@ -106,21 +114,31 @@ class BaseInstanceGenerator(object):
                 out += text(value)
         return md5(out.encode('utf-8')).hexdigest()
 
-    def _check_hash(self, instance, field):
-        count = 0
-        qs = []
-        if hasattr(instance, field):
+    def _check_hash(self, instance, fieldname):
+        """Returns the number of instances that match the hash of
+        a given new instance. Also returns the query for update operations.
+
+        Args:
+            instance (models.Model): New instance to hash
+            fieldname (str): name of the field where hash will be stored
+
+        Returns:
+            Tuple: Number of finds, queryset to retrieve records matching hash
+
+        """
+        qs = self.model_class.objects.none()
+        if hasattr(instance, fieldname):
             value = self.hash_instance(instance)
-            qs = self.model_class.objects.filter(**{field: value})
-            setattr(instance, field, value)
-            count = qs.count()
-        return count, qs
+            setattr(instance, fieldname, value)
+            qs = self.model_class.objects.filter(**{fieldname: value})
+        return qs.count(), qs
 
     def _get_persistence_query(self, model_instance, persistence):
         """
         Returns query to determine whether record already exists
-        depending on persistence definition.
+        depending on persistence criteria.
         """
+        # TODO: pure function?
         query = Q()
         for fieldname in persistence:
             value = getattr(model_instance, fieldname, None)
@@ -129,9 +147,10 @@ class BaseInstanceGenerator(object):
         return self.model_class.objects.filter(query)
 
     def _check_persistence(self, instance, persistence):
+        # TODO: pure function?
         """
         Returns the number of records fulfilling the
-        persistence criterion and the queryset resulting from
+        persistence criterion and the query set resulting from
         the application of the persistence criterion.
         """
         if not persistence:
@@ -143,6 +162,7 @@ class BaseInstanceGenerator(object):
         return qs.count(), qs
 
     def _assign_related(self, instance, rel_inst_dic, dic={}):
+        # TODO: pure function?
         """
         Assign related instances after saving the parent
         record. The instances should be fully prepared and
@@ -196,7 +216,7 @@ class BaseInstanceGenerator(object):
             # updates work as well (as they should since they are treated
             # separately)
             persistence_qs.update(**dic)
-            # add this here to make sure post_save signals are broadcasted
+            # add this here to make sure post_save signals are broadcast
             persistence_qs[0].save()
             self.res['updated'] = True
         self.res['exists'] = True
@@ -335,30 +355,20 @@ class InstanceGenerator(BaseInstanceGenerator):
         if isinstance(dic, self.model_class):
             return dic
         model_instance = self.model_class()
-        try:
-            fieldnames = [item.name for item in model_instance._meta.get_fields()]
-        except AttributeError:
-            # for Django 1.7 compatibility
-            fieldnames = model_instance._meta.get_all_field_names()
-        for fieldname in fieldnames:
-            if fieldname not in dic:
+        for field in get_fields(model_instance):
+            if field.name not in dic:
                 continue
-            try:
-                field = model_instance._meta.get_field(fieldname)
-            # this is a patch for different behavior in Django 1.7
-            # of get_field, TODO: rework for Django 1.8
-            except FieldDoesNotExist:
-                continue
-            fieldtype = field.get_internal_type()
+            fieldtype = get_internal_type(field)
             try:
                 fieldvalue = self.preparations[fieldtype](
-                    self, field, dic[fieldname])
+                    self, field, dic[field.name])
             except KeyError:
-                fieldvalue = dic[fieldname]
+                fieldvalue = dic[field.name]
             try:
-                setattr(model_instance, fieldname, fieldvalue)
-            # TODO: more thoroughly explore cases where these exceptions are
-            # necessary
+                if fieldtype in ['ManyToManyField']:
+                    pass
+                else:
+                    setattr(model_instance, field.name, fieldvalue)
             except (AttributeError, ValueError, TypeError):
                 pass
         return model_instance
@@ -400,8 +410,7 @@ class FkInstanceGenerator(RelInstanceGenerator):
         keys = get_unambiguous_fields(self.model_class)
         if all(key in value for key in keys) and self.related_field == 'id':
             self.persistence = keys
-            fk_dic = value
-            return super(FkInstanceGenerator, self).prepare(fk_dic)
+            return super(FkInstanceGenerator, self).prepare(value)
         else:
             raise ValidationError(
                 'Related object cannot be determined for {}'

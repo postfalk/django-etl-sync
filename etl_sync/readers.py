@@ -77,5 +77,7 @@ class ShapefileReader(OGRReader):
     """
 
     def __init__(self, *args, **kwargs):
-        warnings.warn(DeprecationWarning)
+        warnings.warn(
+            DeprecationWarning('ShapefileRader will be removed in'
+                               'version 1.0. Use OGRReader instead.'))
         super(ShapefileReader, self).__init__(*args, **kwargs)
