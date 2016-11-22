@@ -44,7 +44,6 @@ class ElNumero(models.Model):
     name = models.CharField(max_length=10, blank=True)
     nochwas = models.CharField(max_length=2, blank=True)
 
-
 class TestModel(models.Model):
     """
     Model for Unit tests.
@@ -123,3 +122,8 @@ class WellDefinedModel(models.Model):
 
 class ParentModel(models.Model):
     well_defined = models.ForeignKey(WellDefinedModel)
+
+
+class TwoUnique(models.Model):
+    record = models.CharField(max_length=2, unique=True)
+    anotherfield = models.CharField(max_length=2, unique=True)

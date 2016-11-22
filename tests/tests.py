@@ -610,24 +610,6 @@ class TestPreparations(TestCase):
         self.assertTrue(generator.res['created'])
 
 
-class TestUmambiguousField(TestCase):
-
-    def test_umambigous(self):
-        for item in [
-            ElNumero, Nombre, TestModel, TestModelWoFk,
-            Numero, SomeModel, GeometryModel,
-            TestOnetoOneModel
-        ]:
-            self.assertEqual(get_unambiguous_fields(item), ['name'])
-        for item in [Polish, AnotherModel]:
-            self.assertEqual(get_unambiguous_fields(item), ['record'])
-        self.assertEqual(
-            get_unambiguous_fields(IntermediateModel), ['attribute'])
-        self.assertEqual(
-            get_unambiguous_fields(WellDefinedModel),
-            ['something', 'somenumber'])
-
-
 class TestDictAsForeignKey(TestCase):
 
     def test_complex_dict(self):

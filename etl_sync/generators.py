@@ -19,42 +19,35 @@ def get_unique_fields(model_class):
     """
     Return model fields with unique=True.
     """
-    ret = []
-    for field in model_class._meta.fields:
-        if field.unique and not field.name == 'id':
-            ret.append(field.name)
-    return ret
+    return [
+        field.name for field in model_class._meta.fields
+        if field.unique and not field.name == 'id']
 
 
 def get_unambiguous_fields(model_class):
     """
-    Returns unambiguous field from Fk model. Uses 'name' as default.
+    Returns unambiguous field from Fk model. Defaults to name.
     This will be only successful if there is ONLY one single CharField
     or only one unique CharField. All other cases must be specified in
     more detail.
     """
     unique_together = model_class._meta.unique_together
-    if unique_together and len(unique_together) == 1:
+    if len(unique_together) == 1:
         return list(unique_together[0])
-    ct_char = 0
-    ct_uniquechar = 0
-    for f in model_class._meta.fields:
-        test = (f.get_internal_type() == 'CharField')
-        if test and ct_char < 2:
-            if f.name == 'name':
-                return ['name']
-            ct_char += 1
-            charfield = f.name
-        if f.unique and test:
-            if ct_uniquechar < 2:
-                ct_uniquechar += 1
-                uniquecharfield = f.name
-            else:
-                break
-    if ct_char == 1:
-        return [charfield]
-    if ct_uniquechar == 1:
-        return [uniquecharfield]
+    fields = model_class._meta.get_fields()
+    char_fields = [
+        field for field in fields
+        if field.get_internal_type() == 'CharField']
+    name_field = [field.name for field in char_fields if field.name == 'name']
+    if name_field:
+        return name_field
+    if len(char_fields) == 1:
+        return [field.name for field in char_fields]
+    unique_char_fields = [
+        field.name for field in char_fields
+        if getattr(field, 'unique', None)]
+    if len(unique_char_fields) == 1:
+        return unique_char_fields
     raise ValidationError(
         'Failure to identify unambiguous field for {}'.format(model_class))
 
