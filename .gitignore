@@ -8,3 +8,4 @@ dist/
 conf.py
 README.rst.rst
 _build/
+build/

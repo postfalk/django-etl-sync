@@ -2,9 +2,7 @@
 Ensure compatibility with older versions.
 """
 import warnings
-from etl_sync.loaders import (
-    Loader, FeedbackCounter, FileReaderLogManager,
-    get_logfilename)
+from etl_sync.loaders import Loader
 
 
 class Mapper(Loader):

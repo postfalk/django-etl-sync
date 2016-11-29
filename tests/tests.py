@@ -16,8 +16,8 @@ from tests.models import (
     DateTimeModel, TestOnetoOneModel, WellDefinedModel, ParentModel)
 from etl_sync.generators import (
     BaseInstanceGenerator, InstanceGenerator)
-from etl_sync.mappers import Mapper, FeedbackCounter
-from etl_sync.loaders import Loader, FileReaderLogManager, Extractor
+from etl_sync.mappers import Mapper
+from etl_sync.loaders import Loader, Extractor, FeedbackCounter
 from etl_sync.readers import unicode_dic, ShapefileReader, OGRReader
 from etl_sync.transformations import Transformer
 
@@ -55,8 +55,9 @@ class TestModule(TestCase):
         res.delete()
         # test with double persistence criterion
         for dic in dics:
-            BaseInstanceGenerator(
-                TestModelWoFk, dic, persistence=['record', 'name']).get_instance()
+            generator = BaseInstanceGenerator(TestModelWoFk, dic,
+                                              persistence=['record', 'name'])
+            generator.get_instance()
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 4)
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
@@ -321,34 +322,10 @@ class TestModule(TestCase):
         self.assertNotEqual(hashvalue1, res[0].md5)
 
 
-class TestMapper(TestCase):
-    """Tests for restructured mapper."""
-
-    def test_deprication_warning(self):
-        Extractor('test.txt')
-        warnings.simplefilter('always')
-        with warnings.catch_warnings(record=True) as warn:
-            Mapper()
-            self.assertEqual(len(warn), 1)
-            Loader(defaults={})
-            self.assertEqual(len(warn), 2)
-            Loader()
-            self.assertEqual(len(warn), 2)
-            Loader(reader_class='test')
-            self.assertEqual(len(warn), 3)
-            Loader(reader_kwargs={})
-            self.assertEqual(len(warn), 4)
-            Loader(encoding='utf8')
-            self.assertEqual(len(warn), 5)
-
-
 class TestLoad(TestCase):
     """
     Tests data loading from file.
     """
-
-    def setUp(self):
-        pass
 
     def tearDown(self):
         path = os.path.dirname(os.path.realpath(__file__))

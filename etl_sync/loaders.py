@@ -1,9 +1,6 @@
 from __future__ import print_function
 from backports import csv
-from io import open, StringIO
 from builtins import str as text
-
-import warnings
 
 import os
 from datetime import datetime
@@ -23,6 +20,19 @@ def get_logfilename(filename):
     return ret
 
 
+def create_logfile(filename=None):
+    if filename:
+        return open(filename, 'w')
+    else:
+        return None
+
+
+def get_logfile(filename=None, logfilename=None):
+    if not logfilename:
+        logfilename = get_logfilename(filename)
+    return create_logfile(logfilename)
+
+
 class FeedbackCounter(object):
     """
     Keeps track of the ETL process and provides feedback.
@@ -38,22 +48,19 @@ class FeedbackCounter(object):
         self.starttime = datetime.now()
         self.feedbacktime = self.starttime
 
-    def _feedback(self):
+    def feedback(self):
         """
         Print feedback.
         """
-        if self.counter % self.feedbacksize == 0:
-            print(
-                '{0} {1} processed in {2}, {3}, {4} created, {5} updated, '
-                '{6} rejected'.format(
-                    self.message, self.feedbacksize,
-                    datetime.now()-self.feedbacktime, self.counter,
-                    self.created, self.updated, self.rejected))
-            self.feedbacktime = datetime.now()
+        print(
+            '{0} {1} processed in {2}, {3}, {4} created, {5} updated, '
+            '{6} rejected'.format(
+                self.message, self.feedbacksize,
+                datetime.now()-self.feedbacktime, self.counter,
+                self.created, self.updated, self.rejected))
+        self.feedbacktime = datetime.now()
 
     def increment(self):
-        if self.counter > 0:
-            self._feedback()
         self.counter += 1
 
     def reject(self):
@@ -98,37 +105,18 @@ class Extractor(object):
 
     Return reader instance.
     """
-    # TODO Make this duck-type compatible with CSV reader
-    # so that the reader can be used straight up if no options required.
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     encoding = 'utf-8'
-    logname = None #  Depricate, there is no need to keep this with the
-                   #  Extractor class
 
-    def __init__(self, source, logname=None, reader_class=None,
+    def __init__(self, source, reader_class=None,
                  reader_kwargs = {}, encoding=None):
         self.source = source
-        # TODO: fix this ugly patch
-        logname = logname or get_logfilename(source)  # deprecate kwarg
         self.reader_class = reader_class or self.reader_class  # deprecate kwarg
         self.reader_kwargs = reader_kwargs or self.reader_kwargs  # deprecate kwarg
         self.encoding = encoding or self.encoding  # deprecate kwarg
         self.fil = None
         self.logfile = None
-        try:
-            if logname:
-                self.logfile = open(logname, 'w')
-            else:
-                self.logfile = None
-        except TypeError:
-            pass
-
-    def _log(self, tex):
-        """
-        Log to logfile or to stdout if self.logfile=None
-        """
-        print(text(tex), file=self.logfile)
 
     def __enter__(self):
         """
@@ -137,49 +125,72 @@ class Extractor(object):
         in your own reader class. Allows for non-text data sources or
         directories (see e.g. OGRReader)
         """
-        if not hasattr(self.source, 'read'):
+        if hasattr(self.source, 'read'):
+            fil = self.source
+        else:
             try:
                 fil = open(self.source)
             except IOError:
                 return None
-        else:
-            fil = self.source
-        reader = self.reader_class(fil, **self.reader_kwargs)
-        reader.log = self._log
-        return reader
+        return self.reader_class(fil, **self.reader_kwargs)
 
     def __exit__(self, type, value, traceback):
-        for filehandle in [self.fil, self.logfile]:
-            try:
-                filehandle.close()
-            except (AttributeError, IOError):
-                pass
+        try:
+            self.fil.close()
+        except (AttributeError, IOError):
+            pass
 
 
-class FileReaderLogManager(Extractor):
-    """Deprecate, use for compatibility"""
+class Logger(object):
+    """Class that holds the logger messages."""
+    start_message = (
+        'Data extraction started {start_time}\n\nStart line: '
+        '{slice_begin}\nEnd line: {slice_end}\n')
+    reader_error_meassage = (
+        'Text decoding or CSV error in line {0}: {1} => rejected')
+    instance_error_message = (
+        'Instance generation error in line {0}: {1} => rejected')
+    instance_error_message = (
+        'Transformation error in line {0}: {1} => rejected')
 
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'FileReaderLogManager will be deprecated in release 1.0 '
-            'use Extractor instead.', DeprecationWarning)
-        super(FileReaderLogManager, self).__init__(*args, **kwargs)
+    def __init__(self, logfile):
+        self.logfile = logfile
+
+    def log(self, txt):
+        """
+        Log to log file or to stdout if self.logfile=None
+        """
+        print(text(txt), file=self.logfile)
+
+    def log_start(self, options):
+        self.log(self.start_message.format(**options))
+
+    def log_reader_error(self, line, error):
+        self.log(self.reader_error_message.format(line, str(error)))
+
+    def log_transformation_error(self, line, error):
+        self.log(self.transformation_error_message.format(line, str(error)))
+
+    def log_instance_error(self, line, error):
+        self.log(self.instance_error_message.format(line, str(error)))
+
+    def close(self):
+        if self.logfile:
+            self.logfile.close()
 
 
 class Loader(object):
     """
     Generic mapper object for ETL.
     """
-    reader_class = csv.DictReader # to be deprecated
-    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE} # to be deprecated
     transformer_class = Transformer
     extractor_class = Extractor
     generator_class = InstanceGenerator
     model_class = None
-    filename = None
+    filename = None # move to init
     encoding = 'utf-8' # to be deprecated
-    slice_begin = 0
-    slice_end = None
+    slice_begin = 0 # move to init
+    slice_end = None # move to init
     defaults = {} # to be deprecated in 1.0, set in Transformer class
     create_new = True
     update = True
@@ -187,89 +198,55 @@ class Loader(object):
     etl_persistence = ['record']
     message = 'Data Extraction'
     result = None
-    feedbacksize = 5000
-    logfile = None
     logfilename = None
-    forms = []
 
     def __init__(self, *args, **kwargs):
-        for k in kwargs:
-            try:
-                setattr(self, k, kwargs[k])
-                will_be_deprecated = {
-                    'defaults': 'Transformer',
-                    'reader_class': 'Extractor',
-                    'reader_kwargs': 'Extractor',
-                    'encoding': 'Extractor',
-                    'logfile': 'Extractor',
-                    'logfilename': 'Extractor',
-                    'create_new': 'Generator',
-                    'update': 'Generator',
-                    'create_foreign_key': 'Generator',
-                    'message': 'Extractor'}
-                if k in will_be_deprecated:
-                    warnings.warn(
-                        'The {}= kwarg for the Mapper class will '
-                        'be deprecated in release 1.0. Set values '
-                        'in subclass of {}.'.format(k, will_be_deprecated[k]),
-                        DeprecationWarning)
-            except AttributeError:
-                warnings.warn(
-                    'Invalid keyword argument for Mapper will be ignored.')
-        try:
-            self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
-        except:
-            pass
-        self.logfilename = self.logfilename or get_logfilename(self.filename)
-        self.extractor = self.extractor_class(
-            self.filename,
-            logname=self.logfilename,
-            reader_class=self.reader_class,
-            reader_kwargs=self.reader_kwargs,
-            encoding=self.encoding)
+        self.filename = kwargs.get('filename')
+        self.model_class = kwargs.get('model_class') or self.model_class
+        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
+        self.logfile = get_logfile(
+            filename=self.filename, logfilename=self.logfilename)
+        self.extractor = self.extractor_class(self.filename)
 
-    def _log(self, text):
+    def feedback_hook(self, counter):
+        """Create actions that will be triggered after the number of records
+        defined in self.feedbacksize. This can be used to store a file position
+        to a database to continue a load later.
         """
-        Log to log file or to stdout if self.logfile=None
-        """
-        print(text, file=self.logfile)
+        pass
 
     def load(self):
         """
         Loads data into database using Django models and error logging.
         """
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
+        logger = Logger(self.logfile)
+        counter = FeedbackCounter(
+            feedbacksize=self.feedbacksize, message=self.message)
         with self.extractor as extractor:
-            extractor.log(
-                'Data extraction started {0}\n\nStart line: '
-                '{1}\nEnd line: {2}\n'.format(
-                    datetime.now().strftime(
-                        '%Y-%m-%d'), self.slice_begin, self.slice_end))
-            counter = FeedbackCounter(
-                feedbacksize=self.feedbacksize, message=self.message)
+            logger.log_start({
+                'start_time': datetime.now().strftime('%Y-%m-%d'),
+                'slice_begin': self.slice_begin,
+                'slice_end': self.slice_end})
             while self.slice_begin and self.slice_begin > counter.counter:
                 extractor.next()
                 counter.increment()
             while not self.slice_end or self.slice_end >= counter.counter:
                 try:
                     csv_dic = extractor.next()
-                except (UnicodeDecodeError, csv.Error):
-                    extractor.log(
-                        'Text decoding or CSV error in line {0} '
-                        '=> rejected'.format(counter.counter))
+                except (UnicodeDecodeError, csv.Error) as e:
+                    logger.log_reader_error(counter.counter, e)
                     counter.reject()
                     continue
                 except StopIteration:
-                    extractor.log('End of file.')
+                    logger.log('End of file.')
                     break
                 transformer = self.transformer_class(csv_dic, self.defaults)
                 if transformer.is_valid():
                     dic = transformer.cleaned_data
                 else:
-                    extractor.log(
-                        'Validation error in line {0}: {1} '
-                        '=> rejected'.format(
-                            counter.counter, transformer.error))
+                    logger.log_transformation_error(
+                        counter.counter, transformer.error)
                     counter.reject()
                     continue
                 generator = self.generator_class(
@@ -278,17 +255,14 @@ class Loader(object):
                 try:
                     generator.get_instance()
                 except (ValidationError, IntegrityError, DatabaseError) as e:
-                    extractor.log('Error in line {0}: {1} => rejected'.format(
-                        counter.counter, str(e)))
+                    logger.log_instance_error(counter.counter, e)
                     counter.reject()
                     continue
                 else:
                     counter.use_result(generator.res)
-            extractor.log(counter.finished())
+                if counter.counter % self.feedbacksize == 0:
+                    counter.feedback()
+                    self.feedback_hook(counter.counter)
+            logger.log(counter.finished())
+            logger.close()
         return 'finished'
-
-
-# class FileObjectLoader(Loader):
-#    """This will be the new loader class working with FileLikeObjects."""
-#
-#    def __init__(self):
