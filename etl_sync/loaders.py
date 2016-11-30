@@ -130,8 +130,7 @@ class Extractor(object):
                 fil = io.open(self.source)
             except IOError:
                 return None
-        ret = self.reader_class(fil, **self.reader_kwargs)
-        return ret
+        return self.reader_class(fil, **self.reader_kwargs)
 
     def __exit__(self, type, value, traceback):
         try:
@@ -196,10 +195,10 @@ class Loader(object):
     create_foreign_key = True
     etl_persistence = ['record']
     result = None
-    logfilename = None
 
     def __init__(self, *args, **kwargs):
         self.source = kwargs.get('filename')
+        self.logfilename = kwargs.get('logfilename')
         self.model_class = kwargs.get('model_class') or self.model_class
         self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
         self.logfile = get_logfile(

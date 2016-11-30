@@ -59,6 +59,21 @@ class TestFeedbackCounter(TestCase):
         self.assertIn('20 records processed', res)
 
 
+class TestInit(TestCase):
+
+    def test_logfilename(self):
+        loader = Loader(filename='data.csv')
+        name = loader.logfile.name
+        self.assertTrue(
+            re.match(r'^data.csv.\d{4}-\d{2}-\d{2}.log$', name))
+        os.remove(name)
+        loader = Loader(filename='data.csv', logfilename='test.log')
+        self.assertEqual(loader.logfile.name, 'test.log')
+        os.remove('test.log')
+        loader = Loader(filename=StringIO('test'))
+        self.assertFalse(loader.logfile)
+
+
 class TestfileTestCase(TestCase):
 
     def setUp(self):
