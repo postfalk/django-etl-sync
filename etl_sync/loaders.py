@@ -2,6 +2,7 @@ from __future__ import print_function
 from backports import csv
 from builtins import str as text
 
+import io
 import os
 from datetime import datetime
 from django.core.exceptions import ValidationError
@@ -38,26 +39,31 @@ class FeedbackCounter(object):
     Keeps track of the ETL process and provides feedback.
     """
 
-    def __init__(self, message=None, feedbacksize=5000, counter=0):
+    def __init__(self, counter=0):
         self.counter = counter
-        self.feedbacksize = feedbacksize
-        self.message = message
         self.rejected = 0
         self.created = 0
         self.updated = 0
         self.starttime = datetime.now()
         self.feedbacktime = self.starttime
+        self.message = (
+            'Extraction from {filename}:\n {records} records processed '
+            'in {time}, {total}: {created} created, {updated} updated, '
+            '{rejected} rejected.')
 
-    def feedback(self):
+    def feedback(self, **kwargs):
         """
         Print feedback.
         """
-        print(
-            '{0} {1} processed in {2}, {3}, {4} created, {5} updated, '
-            '{6} rejected'.format(
-                self.message, self.feedbacksize,
-                datetime.now()-self.feedbacktime, self.counter,
-                self.created, self.updated, self.rejected))
+        dic = {
+            'filename': str(kwargs.get('filename')),
+            'records': kwargs.get('records'),
+            'time': datetime.now()-self.feedbacktime,
+            'total': self.counter,
+            'created': self.created,
+            'updated': self.updated,
+            'rejected': self.rejected}
+        print(self.message.format(**dic))
         self.feedbacktime = datetime.now()
 
     def increment(self):
@@ -115,7 +121,6 @@ class Extractor(object):
         self.reader_class = reader_class or self.reader_class  # deprecate kwarg
         self.reader_kwargs = reader_kwargs or self.reader_kwargs  # deprecate kwarg
         self.encoding = encoding or self.encoding  # deprecate kwarg
-        self.fil = None
         self.logfile = None
 
     def __enter__(self):
@@ -129,10 +134,11 @@ class Extractor(object):
             fil = self.source
         else:
             try:
-                fil = open(self.source)
+                fil = io.open(self.source)
             except IOError:
                 return None
-        return self.reader_class(fil, **self.reader_kwargs)
+        ret = self.reader_class(fil, **self.reader_kwargs)
+        return ret
 
     def __exit__(self, type, value, traceback):
         try:
@@ -146,7 +152,7 @@ class Logger(object):
     start_message = (
         'Data extraction started {start_time}\n\nStart line: '
         '{slice_begin}\nEnd line: {slice_end}\n')
-    reader_error_meassage = (
+    reader_error_message = (
         'Text decoding or CSV error in line {0}: {1} => rejected')
     instance_error_message = (
         'Instance generation error in line {0}: {1} => rejected')
@@ -166,13 +172,13 @@ class Logger(object):
         self.log(self.start_message.format(**options))
 
     def log_reader_error(self, line, error):
-        self.log(self.reader_error_message.format(line, str(error)))
+        self.log(self.reader_error_message.format(line, text(error)))
 
     def log_transformation_error(self, line, error):
-        self.log(self.transformation_error_message.format(line, str(error)))
+        self.log(self.transformation_error_message.format(line, text(error)))
 
     def log_instance_error(self, line, error):
-        self.log(self.instance_error_message.format(line, str(error)))
+        self.log(self.instance_error_message.format(line, text(error)))
 
     def close(self):
         if self.logfile:
@@ -196,7 +202,6 @@ class Loader(object):
     update = True
     create_foreign_key = True
     etl_persistence = ['record']
-    message = 'Data Extraction'
     result = None
     logfilename = None
 
@@ -221,8 +226,7 @@ class Loader(object):
         """
         print('Opening {0} using {1}'.format(self.filename, self.encoding))
         logger = Logger(self.logfile)
-        counter = FeedbackCounter(
-            feedbacksize=self.feedbacksize, message=self.message)
+        counter = FeedbackCounter()
         with self.extractor as extractor:
             logger.log_start({
                 'start_time': datetime.now().strftime('%Y-%m-%d'),
@@ -261,7 +265,8 @@ class Loader(object):
                 else:
                     counter.use_result(generator.res)
                 if counter.counter % self.feedbacksize == 0:
-                    counter.feedback()
+                    counter.feedback(
+                        filename=self.filename, records=self.feedbacksize)
                     self.feedback_hook(counter.counter)
             logger.log(counter.finished())
             logger.close()

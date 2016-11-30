@@ -233,8 +233,7 @@ class TestModule(TestCase):
                     {'record': '19', 'ilosc': 'jeden',
                         'persistence': 'record'},
                 ]},
-            {'record': 43, 'zahl': None, 'numero': 'uno'},
-        ]
+            {'record': 43, 'zahl': None, 'numero': 'uno'}]
         for dic in dics:
             generator = InstanceGenerator(
                 HashTestModel, dic, persistence='record')
@@ -375,29 +374,6 @@ class TestReaders(TestCase):
             self.assertEqual(dic['text'], u'three')
             dic = reader.next()
             self.assertEqual(dic['text'], u'two')
-
-
-class TestFeedbackCounter(TestCase):
-
-    def test_feedbackcounter(self):
-        counter = FeedbackCounter(feedbacksize=2, message='test')
-        self.assertEqual(counter.feedbacksize, 2)
-        self.assertEqual(counter.counter, 0)
-        counter.increment()
-        self.assertEqual(counter.counter, 1)
-        counter.increment()
-        self.assertEqual(counter.counter, 2)
-        counter.reject()
-        self.assertEqual(counter.counter, 3)
-        self.assertEqual(counter.rejected, 1)
-        counter.update()
-        self.assertEqual(counter.counter, 4)
-        self.assertEqual(counter.rejected, 1)
-        self.assertEqual(counter.updated, 1)
-        counter.create()
-        self.assertEqual(counter.counter, 5)
-        self.assertEqual(counter.updated, 1)
-        self.assertEqual(counter.created, 1)
 
 
 class TestTransformer(TestCase):
@@ -633,9 +609,16 @@ class TestExtractor(TestCase):
         extractor = Extractor(self.filename)
         with extractor as ex:
             ct = 0
-            for item in ex:
-                ct += 1
-                self.assertTrue(isinstance(item, dict))
+            while True:
+                try:
+                    ex.next()
+                    ct +=1
+                except StopIteration:
+                    break
+
+            # for item in ex:
+            #    ct += 1
+            #    self.assertTrue(isinstance(item, dict))
             self.assertEqual(ct, 3)
             ct = 0
 
@@ -664,4 +647,3 @@ class TestFileLikeObjectInLoader(TestCase):
         loader = Loader(filename=content, model_class=TestModel)
         loader.load()
         self.assertEqual(TestModel.objects.all().count(), 3)
-
