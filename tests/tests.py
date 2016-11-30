@@ -609,16 +609,9 @@ class TestExtractor(TestCase):
         extractor = Extractor(self.filename)
         with extractor as ex:
             ct = 0
-            while True:
-                try:
-                    ex.next()
-                    ct +=1
-                except StopIteration:
-                    break
-
-            # for item in ex:
-            #    ct += 1
-            #    self.assertTrue(isinstance(item, dict))
+            for item in ex:
+                ct += 1
+                self.assertTrue(isinstance(item, dict))
             self.assertEqual(ct, 3)
             ct = 0
 

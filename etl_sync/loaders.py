@@ -126,9 +126,8 @@ class Extractor(object):
     def __enter__(self):
         """
         Checks whether source is file object as required by csv.Reader.
-        If not, it passes path to reader class. Implement file handling
-        in your own reader class. Allows for non-text data sources or
-        directories (see e.g. OGRReader)
+        Implement file handling in your own reader class. Allows for
+        non-text data sources or directories (see e.g. OGRReader)
         """
         if hasattr(self.source, 'read'):
             fil = self.source
@@ -206,12 +205,12 @@ class Loader(object):
     logfilename = None
 
     def __init__(self, *args, **kwargs):
-        self.filename = kwargs.get('filename')
+        self.source = kwargs.get('filename')
         self.model_class = kwargs.get('model_class') or self.model_class
         self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
         self.logfile = get_logfile(
-            filename=self.filename, logfilename=self.logfilename)
-        self.extractor = self.extractor_class(self.filename)
+            filename=self.source, logfilename=self.logfilename)
+        self.extractor = self.extractor_class(self.source)
 
     def feedback_hook(self, counter):
         """Create actions that will be triggered after the number of records
@@ -224,28 +223,33 @@ class Loader(object):
         """
         Loads data into database using Django models and error logging.
         """
-        print('Opening {0} using {1}'.format(self.filename, self.encoding))
+        print('Opening {0} using {1}'.format(self.source, self.encoding))
         logger = Logger(self.logfile)
         counter = FeedbackCounter()
+
         with self.extractor as extractor:
+
             logger.log_start({
                 'start_time': datetime.now().strftime('%Y-%m-%d'),
                 'slice_begin': self.slice_begin,
                 'slice_end': self.slice_end})
+
             while self.slice_begin and self.slice_begin > counter.counter:
                 extractor.next()
                 counter.increment()
+
             while not self.slice_end or self.slice_end >= counter.counter:
+
                 try:
-                    csv_dic = extractor.next()
+                    dic = extractor.next()
                 except (UnicodeDecodeError, csv.Error) as e:
                     logger.log_reader_error(counter.counter, e)
                     counter.reject()
                     continue
                 except StopIteration:
-                    logger.log('End of file.')
                     break
-                transformer = self.transformer_class(csv_dic, self.defaults)
+
+                transformer = self.transformer_class(dic)
                 if transformer.is_valid():
                     dic = transformer.cleaned_data
                 else:
@@ -253,6 +257,7 @@ class Loader(object):
                         counter.counter, transformer.error)
                     counter.reject()
                     continue
+
                 generator = self.generator_class(
                     self.model_class, dic,
                     persistence=self.etl_persistence)
@@ -262,12 +267,12 @@ class Loader(object):
                     logger.log_instance_error(counter.counter, e)
                     counter.reject()
                     continue
-                else:
-                    counter.use_result(generator.res)
+                counter.use_result(generator.res)
+
                 if counter.counter % self.feedbacksize == 0:
                     counter.feedback(
-                        filename=self.filename, records=self.feedbacksize)
+                        filename=self.source, records=self.feedbacksize)
                     self.feedback_hook(counter.counter)
+
             logger.log(counter.finished())
             logger.close()
-        return 'finished'
