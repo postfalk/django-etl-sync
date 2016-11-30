@@ -216,8 +216,13 @@ class Loader(object):
         """Create actions that will be triggered after the number of records
         defined in self.feedbacksize. This can be used to store a file position
         to a database to continue a load later.
+
+        Returns:
+            Boolean: Must be True otherwise load operation will be
+            aborted.
+
         """
-        pass
+        return True
 
     def load(self):
         """
@@ -272,7 +277,8 @@ class Loader(object):
                 if counter.counter % self.feedbacksize == 0:
                     counter.feedback(
                         filename=self.source, records=self.feedbacksize)
-                    self.feedback_hook(counter.counter)
+                    if not self.feedback_hook(counter.counter):
+                        break
 
             logger.log(counter.finished())
             logger.close()
