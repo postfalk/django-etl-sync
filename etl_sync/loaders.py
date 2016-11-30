@@ -113,15 +113,9 @@ class Extractor(object):
     """
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
-    encoding = 'utf-8'
 
-    def __init__(self, source, reader_class=None,
-                 reader_kwargs = {}, encoding=None):
+    def __init__(self, source):
         self.source = source
-        self.reader_class = reader_class or self.reader_class  # deprecate kwarg
-        self.reader_kwargs = reader_kwargs or self.reader_kwargs  # deprecate kwarg
-        self.encoding = encoding or self.encoding  # deprecate kwarg
-        self.logfile = None
 
     def __enter__(self):
         """
