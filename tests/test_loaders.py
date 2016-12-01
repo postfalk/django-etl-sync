@@ -1,15 +1,13 @@
 import os
-import warnings
 import re
 import glob
 from six import StringIO
-from backports import csv
-from unittest import TestCase
+from django.test import TestCase
 from etl_sync.loaders import (
     get_logfilename, FeedbackCounter)
 from .utils import captured_output
 from .models import TestModel
-from etl_sync.loaders import Loader
+from etl_sync.loaders import Loader, Extractor
 
 
 class TestUtils(TestCase):
@@ -72,6 +70,15 @@ class TestInit(TestCase):
         os.remove('test.log')
         loader = Loader(filename=StringIO('test'))
         self.assertFalse(loader.logfile)
+
+    def test_feedbacksize(self):
+        loader = Loader()
+        self.assertEqual(loader.feedbacksize, 5000)
+        loader = Loader(feedbacksize=20)
+        self.assertEqual(loader.feedbacksize, 20)
+        with self.settings(ETL_FEEDBACK=30):
+            loader = Loader()
+            self.assertEqual(loader.feedbacksize, 30)
 
 
 class TestfileTestCase(TestCase):

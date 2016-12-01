@@ -194,13 +194,13 @@ class Loader(object):
     update = True
     create_foreign_key = True
     etl_persistence = ['record']
-    result = None
 
     def __init__(self, *args, **kwargs):
         self.source = kwargs.get('filename')
         self.logfilename = kwargs.get('logfilename')
         self.model_class = kwargs.get('model_class') or self.model_class
-        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK', 5000)
+        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK',
+                                    kwargs.get('feedbacksize', 5000))
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
         self.extractor = self.extractor_class(self.source)
@@ -216,6 +216,28 @@ class Loader(object):
 
         """
         return True
+
+    def feedback(self, counter):
+        if counter.counter % self.feedbacksize == 0:
+            counter.feedback(
+            filename=self.source, records=self.feedbacksize)
+            if not self.feedback_hook(counter.counter):
+                raise StopIteration
+
+    def reader_reject(self, counter, logger, e):
+        logger.log_reader_error(counter.counter, e)
+        counter.reject()
+        self.feedback(counter)
+
+    def transformation_reject(self, counter, logger, e):
+        logger.log_transformation_error(counter.counter, e)
+        counter.reject()
+        self.feedback(counter)
+
+    def generator_reject(self, counter, logger, e):
+        logger.log_instance_error(counter.counter, e)
+        counter.reject()
+        self.feedback(counter)
 
     def load(self):
         """
@@ -239,39 +261,33 @@ class Loader(object):
             while not self.slice_end or self.slice_end >= counter.counter:
 
                 try:
-                    dic = extractor.next()
-                except (UnicodeDecodeError, csv.Error) as e:
-                    logger.log_reader_error(counter.counter, e)
-                    counter.reject()
-                    continue
+                    try:
+                        dic = extractor.next()
+                    except (UnicodeDecodeError, csv.Error) as e:
+                        self.reader_reject(counter, logger, e)
+                        continue
+                    except StopIteration:
+                        break
+
+                    transformer = self.transformer_class(dic)
+                    if transformer.is_valid():
+                        dic = transformer.cleaned_data
+                    else:
+                        self.transformation_reject(counter, logger, e)
+                        continue
+
+                    generator = self.generator_class(
+                        self.model_class, dic,
+                        persistence=self.etl_persistence)
+                    try:
+                        generator.get_instance()
+                    except (ValidationError, IntegrityError,
+                            DatabaseError) as e:
+                        self.generator_reject(counter, logger, e)
+                        continue
+                    counter.use_result(generator.res)
                 except StopIteration:
                     break
-
-                transformer = self.transformer_class(dic)
-                if transformer.is_valid():
-                    dic = transformer.cleaned_data
-                else:
-                    logger.log_transformation_error(
-                        counter.counter, transformer.error)
-                    counter.reject()
-                    continue
-
-                generator = self.generator_class(
-                    self.model_class, dic,
-                    persistence=self.etl_persistence)
-                try:
-                    generator.get_instance()
-                except (ValidationError, IntegrityError, DatabaseError) as e:
-                    logger.log_instance_error(counter.counter, e)
-                    counter.reject()
-                    continue
-                counter.use_result(generator.res)
-
-                if counter.counter % self.feedbacksize == 0:
-                    counter.feedback(
-                        filename=self.source, records=self.feedbacksize)
-                    if not self.feedback_hook(counter.counter):
-                        break
 
             logger.log(counter.finished())
             logger.close()
