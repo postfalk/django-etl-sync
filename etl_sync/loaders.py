@@ -47,7 +47,7 @@ class FeedbackCounter(object):
         self.starttime = datetime.now()
         self.feedbacktime = self.starttime
         self.message = (
-            'Extraction from {filename}:\n {records} records processed '
+            'Extraction from {filename}:\n{records} records processed '
             'in {time}, {total}: {created} created, {updated} updated, '
             '{rejected} rejected.')
 
@@ -288,6 +288,7 @@ class Loader(object):
                         self.generator_reject(counter, logger, e)
                         continue
                     counter.use_result(generator.res)
+                    self.feedback(counter)
                 except StopIteration:
                     break
 
