@@ -204,6 +204,8 @@ class Loader(object):
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
         self.extractor = self.extractor_class(self.source)
+        self.slice_begin = kwargs.get('slice_begin', 0)
+        self.slice_end = kwargs.get('slice_end')
 
     def feedback_hook(self, counter):
         """Create actions that will be triggered after the number of records
