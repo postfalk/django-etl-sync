@@ -51,10 +51,12 @@ def get_unambiguous_fields(model_class):
     """
     unique_together = model_class._meta.unique_together
     if unique_together:
-        return unique_together[0]
+        return list(unique_together[0])
     fields = get_fields(model_class)
+    # TODO: generalize in order to handle records with id field properly
     unique_fields = [
-        field.name for field in fields if getattr(field, 'unique', None)]
+        field.name for field in fields if getattr(field, 'unique', None) and
+        field.name != 'id']
     if len(unique_fields) == 0:
         return []
     if len(unique_fields) == 1:
@@ -71,12 +73,12 @@ class BaseGenerator(object):
         self.related_instances = {}
         self.create = options.get('create', True)
         self.update = options.get('update', True)
+        self.res = None
 
     def get_persistence_query(self, dic, persistence):
-        print('HERE', dic)
         query = Q()
         for fieldname in persistence:
-            value = getattr(self.model_class, fieldname, None)
+            value = dic.get(fieldname, None)
             if value:
                 query = query & Q(**{fieldname: value})
         return self.model_class.objects.filter(query)
@@ -88,9 +90,8 @@ class BaseGenerator(object):
         qs.update(**dic)
         return qs[0]
 
-    def get_instance(self, dic):
-        """Creates, updates, and returns an instance from a dictionary."""
-        model_instance = self.prepare(dic)
+    def instance_from_dic(self, dic):
+        dic = self.prepare(dic)
         persistence = self.persistence or get_unambiguous_fields(
             self.model_class)
         if isinstance(dic, dict):
@@ -101,15 +102,33 @@ class BaseGenerator(object):
         count = len(qs)
         if count == 0:
             instance = self.create_in_db(dic)
+            self.res = 'created'
         if count == 1:
-            instance = self.update_in_db(dic, qs)
+            if update:
+                instance = self.update_in_db(dic, qs)
+                self.res = 'updated'
+            else:
+                self.res = 'exists'
         if count > 1:
             raise ValidationError(
                 'Double Entry found for {}'.format(persistence))
         return instance
 
+    def instance_from_int(self, pk):
+        return self.model_class.objects.get(pk=pk)
+
+    def get_instance(self, obj):
+        """Creates, updates, and returns an instance from a dictionary."""
+        if isinstance(obj, self.model_class):
+            self.res = 'exists'
+            return obj
+        if isinstance(obj, dict):
+            return self.instance_from_dic(obj)
+        if isinstance(obj, int):
+            self.res = 'exists'
+            return self.instance_from_int(obj)
+
     def prepare(self, dic):
-        """Final transformations depending on the field type."""
         return dic
 
 

@@ -15,7 +15,12 @@ class Nombre(models.Model):
     """
     ForeignKey Model for unit tests.
     """
-    name = models.CharField(max_length=10, blank=True)
+    name = models.CharField(max_length=10, blank=True, unique=True)
+
+
+class SimpleFkModel(models.Model):
+    fk = models.ForeignKey(Nombre)
+    name = models.CharField(max_length=10)
 
 
 class Numero(models.Model):
@@ -53,7 +58,7 @@ class TestModel(models.Model):
     name = models.CharField(max_length=10, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
     nombre = models.ForeignKey(Nombre, null=True, blank=True)
-    numero = models.ForeignKey(Numero)
+    numero = models.ForeignKey(Numero, null=True)
     elnumero = models.ForeignKey(
         ElNumero, to_field='rec', null=True, blank=True)
     related = models.ManyToManyField(Polish, null=True, blank=True)

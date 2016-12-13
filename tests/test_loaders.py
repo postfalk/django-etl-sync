@@ -1,7 +1,9 @@
 import os
 import re
 import glob
+import warnings
 from six import StringIO
+from django.db import transaction
 from django.test import TestCase
 from etl_sync.loaders import (
     get_logfilename, FeedbackCounter)
@@ -100,7 +102,7 @@ class TestLoad(TestfileTestCase):
     """
 
     def test_load_from_file(self):
-        with captured_output():
+        with transaction.atomic():
             loader = Loader(filename=self.filename, model_class=TestModel)
             loader.load()
-            self.assertEqual(TestModel.objects.all().count(), 3)
+        self.assertEqual(TestModel.objects.all().count(), 3)

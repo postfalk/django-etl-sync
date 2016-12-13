@@ -85,9 +85,9 @@ class FeedbackCounter(object):
         """
         Use feedback from InstanceGenerator to set counters.
         """
-        if res.get('created'):
+        if res == 'created':
             self.create()
-        elif res.get('updated'):
+        elif res == 'updated':
             self.update()
         else:
             self.increment()
