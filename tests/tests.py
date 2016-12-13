@@ -16,7 +16,7 @@ from tests.models import (
     SomeModel, AnotherModel, IntermediateModel, GeometryModel,
     DateTimeModel, TestOnetoOneModel, WellDefinedModel, ParentModel)
 from etl_sync.generators import (
-    BaseInstanceGenerator, InstanceGenerator)
+    BaseGenerator, InstanceGenerator)
 from etl_sync.mappers import Mapper
 from etl_sync.loaders import Loader, Extractor, FeedbackCounter
 from etl_sync.readers import unicode_dic, ShapefileReader, OGRReader
@@ -62,37 +62,6 @@ class TestModule(TestCase):
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 4)
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
-        res.delete()
-
-    def test_fk(self):
-        ins = Nombre(name='un')
-        dics = [
-            {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': ins,
-             'numero': 'uno'},
-            {'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
-             'numero': 'due'},
-            {'record': '3', 'name': 'three', 'zahl': 'drei', 'nombre':
-             {'name': 'troix'}, 'numero': 'tre'},
-            {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
-             'numero': 'quattro'},
-            {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
-             'nombre': 'quatre', 'numero': 'cinque'},
-            {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
-             'numero': 'test'},
-            {'record': '5', 'name': 'six', 'zahl': 'sechs', 'numero': 2},
-            {'record': '6', 'name': 'six', 'zahl': 'sechs', 'numero': '45',
-             'nombre': '2'},
-            {'record': '7', 'name': 'test', 'numero': '1'}
-        ]
-        for dic in dics:
-            generator = InstanceGenerator(
-                TestModel, persistence='record')
-            generator.get_instance(dic)
-        res = Nombre.objects.all()
-        self.assertEqual(res.count(), 5)
-        res = TestModel.objects.all()
-        self.assertEqual(res.count(), 7)
-        self.assertEqual(res.filter(record='1')[0].nombre.name, 'quatre')
         res.delete()
 
     def test_fk_rejection(self):

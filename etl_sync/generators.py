@@ -69,6 +69,7 @@ class BaseGenerator(object):
 
     def __init__(self, model_class, **options):
         self.model_class = model_class
+        self.field_names = [field.name for field in get_fields(model_class)]
         self.persistence = options.get('persistence', [])
         self.related_instances = {}
         self.create = options.get('create', True)
@@ -76,46 +77,78 @@ class BaseGenerator(object):
         self.res = None
 
     def get_persistence_query(self, dic, persistence):
-        query = Q()
-        for fieldname in persistence:
-            value = dic.get(fieldname, None)
-            if value:
-                query = query & Q(**{fieldname: value})
-        return self.model_class.objects.filter(query)
+        if persistence:
+            query = Q()
+            for fieldname in persistence:
+                value = dic.get(fieldname, None)
+                if value:
+                    query = query & Q(**{fieldname: value})
+            return self.model_class.objects.filter(query)
+        else:
+            return self.model_class.objects.none()
 
     def create_in_db(self, dic):
         return self.model_class.objects.create(**dic)
 
     def update_in_db(self, dic, qs):
         qs.update(**dic)
+        # This save is issued to trigger signals. Not very elegant.
+        qs[0].save()
         return qs[0]
 
     def instance_from_dic(self, dic):
         dic = self.prepare(dic)
         persistence = self.persistence or get_unambiguous_fields(
             self.model_class)
-        if isinstance(dic, dict):
-            persistence = dic.pop('etl_persistence', persistence)
-            create = dic.pop('etl_create', self.create)
-            update = dic.pop('etl_update', self.update)
+        persistence = dic.pop('etl_persistence', persistence)
+        create = dic.pop('etl_create', self.create)
+        update = dic.pop('etl_update', self.update)
+        dic = {
+            item:dic[item] for item in dic if item in self.field_names}
         qs = self.get_persistence_query(dic, persistence)
         count = len(qs)
-        if count == 0:
+        if count == 0 and create:
             instance = self.create_in_db(dic)
             self.res = 'created'
+            return instance
         if count == 1:
             if update:
                 instance = self.update_in_db(dic, qs)
                 self.res = 'updated'
+                return instance
             else:
                 self.res = 'exists'
         if count > 1:
             raise ValidationError(
                 'Double Entry found for {}'.format(persistence))
-        return instance
 
     def instance_from_int(self, pk):
         return self.model_class.objects.get(pk=pk)
+
+    def instance_from_str(self, string):
+        unique_string_fields = [
+            field for field in get_fields(self.model_class)
+            if get_internal_type(field) == 'CharField' and
+            field.unique]
+        if len(unique_string_fields) == 1:
+            dic = {unique_string_fields[0].name: string}
+            return self.instance_from_dic(dic)
+
+    def assign_related(self, instance):
+        for (key, lst) in iteritems(self.related_instances):
+            field = getattr(instance, key)
+            try:
+                field.add(*lst)
+            except AttributeError:
+                generator = InstanceGenerator(field.through)
+                for item in lst:
+                    instance = generator.get_instance({
+                        field.source_field_name: instance.pk,
+                        field.target_field_name: item.pk,
+                        'etl_persistence': [
+                            field.source_field_name,
+                            field.target_field_name
+                        ]})
 
     def get_instance(self, obj):
         """Creates, updates, and returns an instance from a dictionary."""
@@ -123,10 +156,14 @@ class BaseGenerator(object):
             self.res = 'exists'
             return obj
         if isinstance(obj, dict):
-            return self.instance_from_dic(obj)
+            instance = self.instance_from_dic(obj)
+            self.assign_related(instance)
+            return instance
         if isinstance(obj, int):
             self.res = 'exists'
             return self.instance_from_int(obj)
+        if isinstance(obj, str):
+            return self.instance_from_str(obj)
 
     def prepare(self, dic):
         return dic
@@ -152,15 +189,15 @@ class InstanceGenerator(BaseGenerator):
     def prepare_fk(self, field, value):
         return InstanceGenerator(field.rel.to).get_instance(value)
 
-    def prepare_m2m(self, field, value):
+    def prepare_m2m(self, field, lst):
         # defer assignment of related instances until instance
         # creation is finished
-        if not isinstance(value, list):
-            value = [value]
         self.related_instances[field.name] = []
-        for entry in value:
-            generator = RelInstanceGenerator(field)
-            instance = generator.get_instance(entry)
+        if not isinstance(lst, list):
+            lst = [lst]
+        for item in lst:
+            generator = InstanceGenerator(field.rel.to)
+            instance = generator.get_instance(item)
             self.related_instances[field.name].append(instance)
 
     def prepare_date(self, field, value):
@@ -216,13 +253,6 @@ class InstanceGenerator(BaseGenerator):
             prepare_function = getattr(
                 self, self.preparations[fieldtype], self.prepare_field)
             dic[field.name] = prepare_function(field, dic[field.name])
+            if fieldtype == 'ManyToManyField':
+                del dic[field.name]
         return dic
-
-
-class RelatedInstanceGenerator(InstanceGenerator):
-    pass
-
-
-class FKInstanceGenerator(InstanceGenerator):
-    pass
-
