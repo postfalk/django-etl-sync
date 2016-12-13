@@ -5,6 +5,7 @@ from future.utils import iteritems
 
 import warnings
 
+from django.db import transaction
 import os
 import glob
 from io import StringIO
@@ -38,7 +39,7 @@ class TestModule(TestCase):
         ]
         # test without persistence criterion
         for dic in dics:
-            BaseInstanceGenerator(TestModelWoFk, dic).get_instance()
+            BaseInstanceGenerator(TestModelWoFk).get_instance(dic)
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 6)
         self.assertEqual(res.filter(record='1')[0].name, 'one')
@@ -46,7 +47,7 @@ class TestModule(TestCase):
         # test with persistence criterion
         for dic in dics:
             BaseInstanceGenerator(
-                TestModelWoFk, dic, persistence='record').get_instance()
+                TestModelWoFk, persistence='record').get_instance(dic)
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 3)
         self.assertEqual(res.filter(record='1')[0].name, 'one again')
@@ -55,9 +56,9 @@ class TestModule(TestCase):
         res.delete()
         # test with double persistence criterion
         for dic in dics:
-            generator = BaseInstanceGenerator(TestModelWoFk, dic,
-                                              persistence=['record', 'name'])
-            generator.get_instance()
+            generator = BaseInstanceGenerator(
+                TestModelWoFk, persistence=['record', 'name'])
+            generator.get_instance(dic)
         res = TestModelWoFk.objects.all()
         self.assertEqual(res.count(), 4)
         self.assertEqual(res.filter(record='1')[0].zahl, 'vier')
@@ -85,8 +86,8 @@ class TestModule(TestCase):
         ]
         for dic in dics:
             generator = InstanceGenerator(
-                TestModel, dic, persistence='record')
-            generator.get_instance()
+                TestModel, persistence='record')
+            generator.get_instance(dic)
         res = Nombre.objects.all()
         self.assertEqual(res.count(), 5)
         res = TestModel.objects.all()
@@ -106,12 +107,12 @@ class TestModule(TestCase):
              'expect': False}
         ]
         for dic in dics:
-            generator = InstanceGenerator(
-                TestModel, dic, persistence='record')
+            generator = InstanceGenerator(TestModel, persistence='record')
             if dic['expect']:
-                generator.get_instance()
+                generator.get_instance(dic)
             else:
-                self.assertRaises(ValidationError, generator.get_instance)
+                with self.assertRaises(ValidationError):
+                    generator.get_instance(dic)
             result = generator.res
         self.assertEqual(result['created'], False)
         self.assertEqual(result['updated'], False)
@@ -136,8 +137,8 @@ class TestModule(TestCase):
         ]
         for dic in dics:
             generator = InstanceGenerator(
-                TestModel, dic, persistence='record')
-            generator.get_instance()
+                TestModel, persistence='record')
+            generator.get_instance(dic)
         res = TestModel.objects.all()
         self.assertEqual(res.count(), 3)
         self.assertEqual(res[0].elnumero_id, 'el tres')
@@ -162,8 +163,8 @@ class TestModule(TestCase):
                 'numero': 'tre'}]
         for dic in dics:
             generator = InstanceGenerator(
-                TestModel, dic, persistence='record')
-            generator.get_instance()
+                TestModel, persistence='record')
+            generator.get_instance(dic)
         res = Polish.objects.all()
         self.assertEqual(res.count(), 3)
         # tests also field truncation
@@ -173,8 +174,8 @@ class TestModule(TestCase):
         self.assertEqual(len(res.filter(record='1')[0].related.values()), 2)
 
     def test_onetoone(self):
-        ins = Nombre(name='un')
-        dos = Nombre(name='dos')
+        ins = Nombre.objects.create(name='un', id=1)
+        dos = Nombre.objects.create(name='dos', id=2)
         dics = [
             {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': ins,
              'numero': 'uno'},
@@ -186,32 +187,33 @@ class TestModule(TestCase):
              'numero': 'quattro'},
             {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
              'nombre': dos, 'numero': 'cinque'},
-            {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
-             'numero': 'test'},
+             {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
+              'numero': 'test'},
             {'record': '5', 'name': 'six', 'zahl': 'sechs', 'numero': 2},
             {'record': '6', 'name': 'six', 'zahl': 'sechs', 'numero': '45',
              'nombre': '2'},
             {'record': '7', 'name': 'test', 'numero': '1'}
         ]
-        for dic in dics:
-            generator = InstanceGenerator(
-                TestOnetoOneModel, dic, persistence='record')
-            generator.get_instance()
-        res = Nombre.objects.all()
-        self.assertEqual(res.count(), 5)
-        res = TestOnetoOneModel.objects.all()
-        self.assertEqual(res.count(), 7)
-        rec1 = res.filter(record='1')[0]
-        self.assertEqual(rec1.nombre.name, 'dos')
-        # OneToOneField has the related object as a property
-        self.assertEqual(rec1.nombre.testonetoonemodel, rec1)
-        res.delete()
+        with transaction.atomic():
+            for dic in dics:
+                generator = InstanceGenerator(
+                    TestOnetoOneModel, persistence='record')
+                generator.get_instance(dic)
+            res = Nombre.objects.all()
+            self.assertEqual(res.count(), 5)
+            res = TestOnetoOneModel.objects.all()
+            self.assertEqual(res.count(), 7)
+            rec1 = res.filter(record='1')[0]
+            self.assertEqual(rec1.nombre.name, 'dos')
+            self.assertEqual(rec1.nombre.testonetoonemodel, rec1)
+            res.delete()
 
     def test_validation(self):
         dics = [{'record': '30', 'date': '3333', 'numero': 'uno'}]
         for dic in dics:
-            generator = InstanceGenerator(TestModel, dic, persistence='record')
-            self.assertRaises(ValidationError, generator.get_instance)
+            generator = InstanceGenerator(TestModel, persistence='record')
+            with self.assertRaises(ValidationError):
+                generator.get_instance(dic)
 
     def test_hashing(self):
         dics = [
@@ -236,9 +238,9 @@ class TestModule(TestCase):
             {'record': 43, 'zahl': None, 'numero': 'uno'}]
         for dic in dics:
             generator = InstanceGenerator(
-                HashTestModel, dic, persistence='record')
+                HashTestModel, persistence='record')
             try:
-                generator.get_instance()
+                generator.get_instance(dic)
             except:
                 pass
         res = HashTestModel.objects.all()
@@ -272,11 +274,9 @@ class TestModule(TestCase):
                  }
             ]
             for dic in dics:
-                generator = InstanceGenerator(
-                    HashTestModel, dic, persistence='record')
-                generator.get_instance()
-            res = Polish.objects.all()
-            self.assertEqual(res.count(), 3)
+                InstanceGenerator(
+                    HashTestModel, persistence='record').get_instance(dic)
+            self.assertEqual(Polish.objects.count(), 3)
 
     def assertResult(self, res, expected):
         self.assertEqual(res['updated'], expected[0])
@@ -285,20 +285,15 @@ class TestModule(TestCase):
 
     def test_results(self):
         dic = {'record': 40, 'numero': 'uno'}
-        generator = InstanceGenerator(
-            HashTestModel, dic, persistence='record')
-        generator.get_instance()
+        generator = InstanceGenerator(HashTestModel, persistence='record')
+        generator.get_instance(dic)
         self.assertResult(generator.res, (False, False, True))
-        generator.get_instance()
+        generator.get_instance(dic)
         self.assertResult(generator.res, (False, True, False))
-        generator = InstanceGenerator(
-            HashTestModel, dic, persistence='record')
-        generator.get_instance()
+        generator.get_instance(dic)
         self.assertResult(generator.res, (False, True, False))
         dic['numero'] = 'due'
-        generator = InstanceGenerator(
-            HashTestModel, dic, persistence='record')
-        generator.get_instance()
+        generator.get_instance(dic)
         self.assertResult(generator.res, (True, True, False))
 
     def test_md5(self):
@@ -306,16 +301,16 @@ class TestModule(TestCase):
                 {'record': 43, 'numero': 'due'},
                 {'record': 43, 'numero': 'tres'}]
         generator = InstanceGenerator(
-            HashTestModel, dics[0], persistence='record')
-        instance = generator.get_instance()
+            HashTestModel, persistence='record')
+        instance = generator.get_instance(dics[0])
         hashvalue1 = instance.md5
         generator = InstanceGenerator(
-            HashTestModel, dics[1], persistence='record')
-        instance = generator.get_instance()
+            HashTestModel, persistence='record')
+        instance = generator.get_instance(dics[1])
         self.assertEqual(hashvalue1, instance.md5)
         generator = InstanceGenerator(
-            HashTestModel, dics[2], persistence='record')
-        instance = generator.get_instance()
+            HashTestModel, persistence='record')
+        instance = generator.get_instance(dics[2])
         self.assertNotEqual(hashvalue1, instance.md5)
         res = HashTestModel.objects.filter(record=43)
         self.assertNotEqual(hashvalue1, res[0].md5)
@@ -419,8 +414,8 @@ class TestM2MWithThrough(TestCase):
               {'record': '1:2', 'last_name': 'Carvello',
                'attribute': 'more_fancy'}
         ]}
-        generator = InstanceGenerator(SomeModel, dic, persistence='record')
-        generator.get_instance()
+        generator = InstanceGenerator(SomeModel, persistence='record')
+        generator.get_instance(dic)
         qs = SomeModel.objects.all()
         self.assertEqual(qs[0].record, '1')
         self.assertEqual(qs[0].name, 'John')
@@ -442,26 +437,26 @@ class TestUpdate(TestCase):
         """
         dic = {'record': '100', 'numero': 'cento', 'zahl': 'hundert'}
         generator = InstanceGenerator(
-            HashTestModel, dic, persistence='record')
-        res = generator.get_instance()
+            HashTestModel, persistence='record')
+        res = generator.get_instance(dic)
         self.assertEqual(res.numero.name, 'cento')
         self.assertTrue(generator.res['created'])
         self.assertFalse(generator.res['updated'])
-        generator.get_instance()
+        generator.get_instance(dic)
         self.assertFalse(generator.res['created'])
         self.assertFalse(generator.res['updated'])
         self.assertTrue(generator.res['exists'])
         dic = {'record': '100', 'numero': 'hundert', 'zahl': 'hundert'}
         generator = InstanceGenerator(
-            HashTestModel, dic, persistence='record')
-        res = generator.get_instance()
+            HashTestModel, persistence='record')
+        res = generator.get_instance(dic)
         self.assertTrue(generator.res['updated'])
         self.assertEqual(res.numero.name, 'hundert')
         dic = {'record': '101', 'name': 'test', 'zahl': 'vier'}
         generator = InstanceGenerator(
-            TestModelWoFk, dic, persistence='record')
-        res = generator.get_instance()
-        res = generator.get_instance()
+            TestModelWoFk, persistence='record')
+        res = generator.get_instance(dic)
+        res = generator.get_instance(dic)
         self.assertTrue(generator.res['updated'])
 
     def test_related_update(self):
@@ -475,30 +470,26 @@ class TestUpdate(TestCase):
               {'record': '1:2', 'last_name': 'Carvello',
                'attribute': 'more_fancy'}
         ]}
-        generator = InstanceGenerator(SomeModel, dic, persistence='record')
-        generator.get_instance()
+        InstanceGenerator(SomeModel, persistence='record').get_instance(dic)
         dic = {'record': '1', 'name': 'John', 'lnames': [
               {'record': '1:1', 'last_name': 'Deer',
                'attribute': 'generic'},
               {'record': '1:2', 'last_name': 'Carvello',
                'attribute': 'more_fancy'}
         ]}
-        generator = InstanceGenerator(SomeModel, dic, persistence='record')
-        generator.get_instance()
+        InstanceGenerator(SomeModel, persistence='record').get_instance(dic)
         qs = SomeModel.objects.all()
         self.assertEqual(qs[0].lnames.all()[0].last_name, 'Deer')
 
     def test_signals(self):
         """Test whether auto_now=True fields get updated as well."""
         dic = {'record': '1110'}
-        generator = InstanceGenerator(
-            TestModelWoFk, dic, persistence='record')
-        generator.get_instance()
+        InstanceGenerator(
+            TestModelWoFk, persistence='record').get_instance(dic)
         date_1 = TestModelWoFk.objects.filter(record='1110')[0].date
         dic = {'record': '1110', 'name': 'test'}
-        generator = InstanceGenerator(
-            TestModelWoFk, dic, persistence='record')
-        generator.get_instance()
+        InstanceGenerator(
+            TestModelWoFk, persistence='record').get_instance(dic)
         qs = TestModelWoFk.objects.filter(record='1110')
         self.assertLess(date_1, qs[0].date)
 
@@ -506,7 +497,7 @@ class TestUpdate(TestCase):
 class TestPreparations(TestCase):
 
     def test_prepare_boolean(self):
-        generator = InstanceGenerator(SomeModel, {})
+        generator = InstanceGenerator(SomeModel)
         tests = [
             ('0', False), ('1', True), ('false', False), ('true', True),
             ('f', False), ('t', True), (1, True), (0, False)]
@@ -515,7 +506,7 @@ class TestPreparations(TestCase):
                 generator._prepare_boolean(None, test[0]), test[1])
 
     def test_prepare_integer(self):
-        generator = InstanceGenerator(SomeModel, {})
+        generator = InstanceGenerator(SomeModel)
         tests = [
             ('1', 1), ('', None), (0, 0), (1, 1), ('bla', None)]
         for test in tests:
@@ -529,73 +520,62 @@ class TestPreparations(TestCase):
             '((10 10 3, 11 10 4, 10 11 4, 10 10 3)))')
         geom = GEOSGeometry(example3d_string)
         generator = InstanceGenerator(
-            GeometryModel, {'geom2d': geom, 'geom3d': geom,
-                            'name': 'testcase 1'})
-        generator.get_instance()
+            GeometryModel)
+        generator.get_instance(
+            {'geom2d': geom, 'geom3d': geom, 'name': 'testcase 1'})
         item = GeometryModel.objects.filter(name='testcase 1')[0]
         self.assertFalse(item.geom2d.hasz)
         self.assertTrue(item.geom3d.hasz)
         example2d_string = item.geom2d
         geom = GEOSGeometry(example2d_string)
         generator = InstanceGenerator(
-            GeometryModel, {'geom2d': geom, 'geom3d': geom,
-                            'name': 'testcase 2'})
-        generator.get_instance()
+            GeometryModel).get_instance(
+                {'geom2d': geom, 'geom3d': geom,
+                 'name': 'testcase 2'})
         item = GeometryModel.objects.filter(name='testcase 2')[0]
         self.assertFalse(item.geom2d.hasz)
         generator = InstanceGenerator(
-            GeometryModel, {'geom2d': None, 'geom3d': None,
+            GeometryModel).get_instance({'geom2d': None, 'geom3d': None,
                             'name': 'emptytest'})
-        generator.get_instance()
         item = GeometryModel.objects.filter(name='emptytest')[0]
         self.assertFalse(item.geom2d)
         self.assertFalse(item.geom3d)
 
     def test_prepare_date(self):
-        generator = InstanceGenerator(
-            DateTimeModel,
-            {'datetimenotnull': '2014-10-14',
-             'datetimenull': '2014-10-14'})
-        generator.get_instance()
+        generator = InstanceGenerator(DateTimeModel)
+        generator.get_instance({
+            'datetimenotnull': '2014-10-14', 'datetimenull': '2014-10-14'})
         self.assertTrue(generator.res['created'])
-        generator = InstanceGenerator(
-            DateTimeModel,
-            {'datetimenotnull': '',
-             'datetimenull': '2014-10-14'})
-        self.assertRaises(ValidationError, generator.get_instance)
-        generator = InstanceGenerator(
-            DateTimeModel,
-            {'datetimenotnull': '2014-10-14',
-             'datetimenull': ''})
-        generator.get_instance()
+        with self.assertRaises(ValidationError):
+            generator.get_instance({
+                'datetimenotnull': '', 'datetimenull': '2014-10-14'})
+        generator.get_instance({
+            'datetimenotnull': '2014-10-14', 'datetimenull': ''})
         self.assertTrue(generator.res['created'])
 
 
 class TestDictAsForeignKey(TestCase):
 
     def test_complex_dict(self):
-        generator = InstanceGenerator(
-            ParentModel,
-            {'well_defined': {'something': 'donkey', 'somenumber': 1}})
+        generator = InstanceGenerator(ParentModel)
         for item in range(0, 2):
-            instance = generator.get_instance()
+            instance = generator.get_instance({
+                'well_defined': {
+                    'something': 'donkey', 'somenumber': 1}})
             self.assertEqual(instance.well_defined.somenumber, 1)
             self.assertEqual(instance.well_defined.something, 'donkey')
         qs = WellDefinedModel.objects.all()
         self.assertEqual(qs.count(), 1)
-        generator=InstanceGenerator(
-            ParentModel,
-            {'well_defined': {'something': 'donkey', 'somenumber': 2}})
-        generator.get_instance()
+        generator.get_instance({
+            'well_defined': {
+                'something': 'donkey', 'somenumber': 2}})
         qs = WellDefinedModel.objects.all()
         self.assertEqual(qs.count(), 2)
         with self.assertRaises(ValidationError):
-            generator=InstanceGenerator(
-                ParentModel,
-                {'well_defined': {
+           generator.get_instance({
+               'well_defined': {
                     'something': 'horse', 'somenumber': 2,
                     'etl_create': False}})
-            generator.get_instance()
 
 
 class TestExtractor(TestCase):

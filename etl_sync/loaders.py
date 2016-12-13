@@ -249,6 +249,9 @@ class Loader(object):
         logger = Logger(self.logfile)
         counter = FeedbackCounter()
 
+        generator = self.generator_class(
+            self.model_class, persistence=self.etl_persistence)
+
         with self.extractor as extractor:
 
             logger.log_start({
@@ -278,11 +281,8 @@ class Loader(object):
                         self.transformation_reject(counter, logger, e)
                         continue
 
-                    generator = self.generator_class(
-                        self.model_class, dic,
-                        persistence=self.etl_persistence)
                     try:
-                        generator.get_instance()
+                        generator.get_instance(dic)
                     except (ValidationError, IntegrityError,
                             DatabaseError) as e:
                         self.generator_reject(counter, logger, e)

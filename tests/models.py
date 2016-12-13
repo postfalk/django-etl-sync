@@ -44,6 +44,7 @@ class ElNumero(models.Model):
     name = models.CharField(max_length=10, blank=True)
     nochwas = models.CharField(max_length=2, blank=True)
 
+
 class TestModel(models.Model):
     """
     Model for Unit tests.
