@@ -1,11 +1,12 @@
 from __future__ import print_function
 from six import text_type, binary_type
 from builtins import str as text
+
 from future.utils import iteritems
 from hashlib import md5
 from django.utils import version
-from django.core.exceptions import ValidationError
-from django.db.models import Q, Model, FieldDoesNotExist
+from django.core.exceptions import ValidationError, FieldError
+from django.db.models import (Q, Model, FieldDoesNotExist)
 from django.forms.models import model_to_dict
 from django.forms import DateTimeField
 
@@ -66,26 +67,34 @@ def get_unambiguous_fields(model_class):
 
 
 class BaseGenerator(object):
+    persistence = None
 
     def __init__(self, model_class, **options):
         self.model_class = model_class
         self.field_names = [field.name for field in get_fields(model_class)]
-        self.persistence = options.get('persistence', [])
+        self.pers = self.persistence or options.get('persistence', [])
+        if not isinstance(self.pers, list):
+            self.pers = [self.pers]
         self.related_instances = {}
         self.create = options.get('create', True)
         self.update = options.get('update', True)
         self.res = None
 
-    def get_persistence_query(self, dic, persistence):
-        if persistence:
+    def get_persistence_query(self, dic, persistence, update):
+        return dic, self.get_from_db(dic, persistence), update
+
+    def get_from_db(self, dic, lookup):
+        if lookup:
             query = Q()
-            for fieldname in persistence:
+            for fieldname in lookup:
                 value = dic.get(fieldname, None)
                 if value:
                     query = query & Q(**{fieldname: value})
-            return self.model_class.objects.filter(query)
-        else:
-            return self.model_class.objects.none()
+            try:
+                return self.model_class.objects.filter(query)
+            except FieldError:
+                pass
+        return self.model_class.objects.none()
 
     def create_in_db(self, dic):
         return self.model_class.objects.create(**dic)
@@ -98,14 +107,13 @@ class BaseGenerator(object):
 
     def instance_from_dic(self, dic):
         dic = self.prepare(dic)
-        persistence = self.persistence or get_unambiguous_fields(
+        persistence = self.persistence or self.pers or get_unambiguous_fields(
             self.model_class)
         persistence = dic.pop('etl_persistence', persistence)
         create = dic.pop('etl_create', self.create)
         update = dic.pop('etl_update', self.update)
-        dic = {
-            item:dic[item] for item in dic if item in self.field_names}
-        qs = self.get_persistence_query(dic, persistence)
+        dic, qs, update = self.get_persistence_query(dic, persistence, update)
+        dic = {item:dic[item] for item in dic if item in self.field_names}
         count = len(qs)
         if count == 0 and create:
             instance = self.create_in_db(dic)
@@ -132,7 +140,8 @@ class BaseGenerator(object):
             field.unique]
         if len(unique_string_fields) == 1:
             dic = {unique_string_fields[0].name: string}
-            return self.instance_from_dic(dic)
+            ret = self.instance_from_dic(dic)
+            return ret
 
     def assign_related(self, instance):
         for (key, lst) in iteritems(self.related_instances):
@@ -152,17 +161,17 @@ class BaseGenerator(object):
 
     def get_instance(self, obj):
         """Creates, updates, and returns an instance from a dictionary."""
-        if isinstance(obj, self.model_class):
-            self.res = 'exists'
-            return obj
         if isinstance(obj, dict):
             instance = self.instance_from_dic(obj)
             self.assign_related(instance)
             return instance
+        if isinstance(obj, self.model_class):
+            self.res = 'exists'
+            return obj
         if isinstance(obj, int):
             self.res = 'exists'
             return self.instance_from_int(obj)
-        if isinstance(obj, str):
+        if isinstance(obj, (text_type, binary_type)):
             return self.instance_from_str(obj)
 
     def prepare(self, dic):
@@ -206,7 +215,7 @@ class InstanceGenerator(BaseGenerator):
             return formfield.clean(value)
 
     def prepare_text(self, field, value):
-        if not isinstance(value, (text_type, binary_type)):
+        if not isinstance(value, text_type):
             ret = text(value)
         else:
             ret = value
@@ -255,4 +264,32 @@ class InstanceGenerator(BaseGenerator):
             dic[field.name] = prepare_function(field, dic[field.name])
             if fieldtype == 'ManyToManyField':
                 del dic[field.name]
+        return dic
+
+
+class HashMixin(object):
+    """Mix-in adding hashing to Generators. Replaces persistence
+    criterion."""
+    hashfield = 'md5'
+    do_not_hash_fields = ['id', 'last_modified']
+
+    def get_persistence_query(self, dic, persistence, update):
+        dic = self.hash_dic(dic)
+        items = self.get_from_db(dic, [self.hashfield])
+        if len(items) > 0:
+            return dic, items, False
+        return dic, self.get_from_db(dic, persistence), update
+
+    def hash(self, dic):
+        text_representation = ''
+        fields = sorted([
+            field for field in dic
+            if field not in [self.hashfield] +
+            list(self.do_not_hash_fields)])
+        for field in fields:
+            text_representation += text(dic[field])
+        return md5(text_representation.encode('utf-8')).hexdigest()
+
+    def hash_dic(self, dic):
+        dic[self.hashfield] = self.hash(dic)
         return dic

@@ -81,7 +81,7 @@ class TestOnetoOneModel(models.Model):
 
 
 class HashTestModel(models.Model):
-    record = models.CharField(max_length=10)
+    record = models.CharField(max_length=10, unique=True)
     numero = models.ForeignKey(Numero, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
     related = models.ManyToManyField(Polish, null=True)

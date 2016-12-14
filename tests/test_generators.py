@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 from django.utils import version
 from django.db import IntegrityError
+from django.contrib.gis.db.models import CharField
 from django.core.exceptions import ValidationError
-from unittest import TestCase
+from django.test import TestCase
 from tests import models
 from etl_sync.generators import (
     get_unique_fields, get_unambiguous_fields, get_fields,
-    BaseGenerator, InstanceGenerator)
+    BaseGenerator, InstanceGenerator, HashMixin)
 
 
 VERSION = version.get_version()[2]
@@ -65,25 +66,8 @@ class TestInstanceGenerator(TestCase):
         self.assertEqual(res.name, 'test')
         self.assertEqual(res.zahl, '1')
 
-    def test_fk_model(self):
-        generator = InstanceGenerator(models.SimpleFkModel)
-        res = generator.get_instance({
-            'fk': {
-                'name': 'test'},
-            'name': 'britta'})
-        self.assertIsInstance(res, models.SimpleFkModel)
-        self.assertIsInstance(res.fk, models.Nombre)
-        self.assertEqual(res.fk.name, 'test')
-        res = generator.get_instance({
-            'fk': {
-                'name': 'test'},
-            'name': 'ulf'})
-        obj_pk = models.Nombre.objects.get(name='test').pk
-        res = generator.get_instance({'fk': 1, 'name': 'ursula'})
-        self.assertEqual(res.fk.name, 'test')
 
-
-class TestComplexModel(TestCase):
+class TestComplexModels(TestCase):
     """This test tests the model used in the file loader test."""
 
     def test_complex_model(self):
@@ -107,27 +91,145 @@ class TestComplexModel(TestCase):
                 'something': 'donkey', 'somenumber': 2}})
         qs = models.WellDefinedModel.objects.all()
         self.assertEqual(qs.count(), 2)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises((ValueError, IntegrityError)):
             generator.get_instance({
                'well_defined': {
                     'something': 'horse', 'somenumber': 2,
                     'etl_create': False}})
 
+    def test_complex_relationships(self):
+        dics = [
+            {'record': 40, 'numero': 'uno'},
+            {'record': 40, 'numero': 'due'},
+            {'record': 43, 'numero': 'tres',
+                'related': [
+                    {'record': '10', 'ilosc': 'jedynka zero'},
+                    {'record': '21', 'ilosc': 'dwadziescia jeden'}
+                ]},
+            {'record': 43, 'numero': 'quattre',
+                'related': [
+                    {'record': '10', 'ilosc': 'jedynka zero'},
+                    {'record': '21', 'ilosc': 'jeden'},
+                    {'record': '19', 'ilosc': 'jeden'}
+                ]},
+            {'record': 43, 'zahl': None, 'numero': 'uno'},
+            {'record': 43, 'zahl': None, 'numero': None},
+            {'record': 43, 'numero': 'tres',
+                'related': [
+                    {'record': '10', 'ilosc': 'jedynka zero'},
+                    {'record': '21', 'ilosc': 'dwadziescia jeden'}
+                ]
+                }
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(
+                models.HashTestModel, persistence='record')
+            generator.get_instance(dic)
+        self.assertEqual(models.Polish.objects.count(), 3)
+
+
+class TestForeignKeyRelations(TestCase):
+
     def test_fk_rejection(self):
-        models.TestModel.objects.all().delete()
-        generator = InstanceGenerator(
-            models.TestModel, persistence='record')
-        instance = generator.get_instance({
+        generator = InstanceGenerator(models.TestModel)
+        generator.get_instance({
             'record': '1', 'name': 'one', 'zahl': 'eins',
             'nombre': {
                 'name': 'un', 'etl_create': False},
             'numero': 'quattre'})
         self.assertEqual(generator.res, 'created')
-        with self.assertRaises(IntegrityError):
-            instance = generator.get_instance({
+        with self.assertRaises((ValueError, IntegrityError)):
+            generator.get_instance({
                 'record': '2', 'name': 'two', 'zahl': 'eins',
                 'numero': {
                     'name': 'uno', 'etl_create': False}})
+
+    def test_fk_with_rel_field_specified(self):
+        generator = InstanceGenerator(
+            models.TestModel, persistence=['record'])
+        instance = generator.get_instance({
+            'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': 'un',
+            'numero': 'uno', 'elnumero': 'el uno'})
+        self.assertEqual(generator.res, 'created')
+        self.assertEqual(instance.elnumero.rec, 'el uno')
+        instance = generator.get_instance({
+            'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
+            'numero': 'due', 'elnumero': 'el dos'})
+        self.assertEqual(generator.res, 'created')
+
+    def test_fk_model(self):
+        generator = InstanceGenerator(models.SimpleFkModel)
+        res = generator.get_instance({
+            'fk': {
+                'name': 'test'},
+            'name': 'britta'})
+        self.assertIsInstance(res, models.SimpleFkModel)
+        self.assertIsInstance(res.fk, models.Nombre)
+        self.assertEqual(res.fk.name, 'test')
+        res = generator.get_instance({
+            'fk': {
+                'name': 'test'},
+            'name': 'ulf'})
+        res = generator.get_instance({'fk': 1, 'name': 'ursula'})
+        self.assertEqual(res.fk.name, 'test')
+
+
+class TestRelations(TestCase):
+
+    def test_rel_creation(self):
+        dics = [
+            {'record': '1', 'name': 'one', 'related': [
+                {'record': '10', 'ilosc': 'dziesiec',
+                    'persistence': 'record'},
+                {'record': '20', 'ilosc': 'dwadziescia',
+                    'persistence': 'record'},
+                ],
+                'numero': 'uno'},
+            {'record': '2', 'name': 'one', 'related': [
+                {'record': '10', 'ilosc': 'jedynka zero',
+                    'persistence': 'record'},
+                {'record': '21', 'ilosc': 'dwadziescia jeden',
+                    'persistence': 'record'},
+                ],
+                'numero': 'tre'}]
+        for dic in dics:
+            generator = InstanceGenerator(models.TestModel)
+            generator.get_instance(dic)
+        res = models.Polish.objects.all()
+        self.assertEqual(res.count(), 3)
+
+    def test_onetoone(self):
+        ins = models.Nombre.objects.create(name='un', id=1)
+        dos = models.Nombre.objects.create(name='dos', id=2)
+        dics = [
+            {'record': '1', 'name': 'one', 'zahl': 'eins', 'nombre': ins,
+             'numero': 'uno'},
+            {'record': '2', 'name': 'two', 'zahl': 'zwei', 'nombre': 'deux',
+             'numero': 'due'},
+            {'record': '3', 'name': 'three', 'zahl': 'drei', 'nombre':
+             {'name': 'troix'}, 'numero': 'tre'},
+            {'record': '1', 'name': 'one', 'zahl': 'vier', 'nombre': 1,
+             'numero': 'quattro'},
+            {'record': '1', 'name': 'one again', 'zahl': 'fuenf',
+             'nombre': dos, 'numero': 'cinque'},
+             {'record': '4', 'name': 'four', 'zahl': 'vier', 'nombre': 1,
+              'numero': 'test'},
+            {'record': '5', 'name': 'six', 'zahl': 'sechs', 'numero': 2},
+            {'record': '6', 'name': 'six', 'zahl': 'sechs', 'numero': '45',
+             'nombre': '2'},
+            {'record': '7', 'name': 'test', 'numero': '1'}
+        ]
+        for dic in dics:
+            generator = InstanceGenerator(
+                models.TestOnetoOneModel, persistence='record')
+            generator.get_instance(dic)
+        res = models.Nombre.objects.all()
+        self.assertEqual(res.count(), 5)
+        res = models.TestOnetoOneModel.objects.all()
+        self.assertEqual(res.count(), 7)
+        rec = res.filter(record='1')[0]
+        self.assertEqual(rec.nombre.name, 'dos')
+        self.assertEqual(rec.nombre.testonetoonemodel, rec)
 
 
 class TestUpdate(TestCase):
@@ -173,6 +275,21 @@ class TestUpdate(TestCase):
         InstanceGenerator(models.SomeModel, persistence='record').get_instance(dic)
         qs = models.SomeModel.objects.all()
         self.assertEqual(qs[0].lnames.all()[0].last_name, 'Deer')
+
+
+class TestRejection(TestCase):
+
+    def test_rejection_by_field_validation(self):
+        dic = {'record': '30', 'date': '3333', 'numero': 'uno'}
+        generator = InstanceGenerator(models.TestModel)
+        with self.assertRaises(ValidationError):
+            generator.get_instance(dic)
+
+    def test_rejection_by_db_integrity(self):
+        dic = {'record': '30', 'date': '2014-01-01'}
+        generator = InstanceGenerator(models.TestModel)
+        with self.assertRaises(IntegrityError):
+            generator.get_instance(dic)
 
 
 class TestMiscModelFunctionality(TestCase):
@@ -246,4 +363,52 @@ class TestPreparations(TestCase):
                 'datetimenotnull': '', 'datetimenull': '2014-10-14'})
         generator.get_instance({
             'datetimenotnull': '2014-10-14', 'datetimenull': ''})
+        self.assertEqual(generator.res, 'created')
+
+    def test_prepare_string(self):
+        generator = InstanceGenerator(models.TestModel)
+        res = generator.prepare_text(CharField(max_length=4), 'test')
+        self.assertEqual(res, 'test')
+        res = generator.prepare_text(CharField(max_length=3), 'test')
+        self.assertEqual(res, 'tes')
+
+
+class TestResults(TestCase):
+
+    def test_results(self):
+        dic = {'record': 40, 'numero': 'uno'}
+        generator = InstanceGenerator(
+            models.HashTestModel, persistence='record')
+        generator.get_instance(dic)
+        self.assertEqual(generator.res, 'created')
+        generator.get_instance(dic)
+        self.assertEqual(generator.res, 'updated')
+        dic['numero'] = 'due'
+        generator.get_instance(dic)
+        self.assertEqual(generator.res, 'updated')
+
+
+class TestHashing(TestCase):
+
+    class HashGenerator(HashMixin, InstanceGenerator):
+        pass
+
+    def test_hashing(self):
+        generator = self.HashGenerator(models.HashTestModel)
+        instance = generator.get_instance({'record': '1', 'zahl': 'alfred'})
+        self.assertEqual(len(instance.md5), 32)
+        self.assertEqual(generator.res, 'created')
+        generator.get_instance({'zahl': 'alfred', 'record': '1'})
+        self.assertEqual(generator.res, 'exists')
+        generator.get_instance({'zahl': 'britta', 'record': '1'})
+        self.assertEqual(generator.res, 'updated')
+        generator.get_instance({'zahl': 'britta', 'record': '2'})
+
+    def test_hashing_without_hashfield(self):
+        generator = self.HashGenerator(models.TestModel)
+        generator.get_instance({'record': 1, 'numero': '23'})
+        self.assertEqual(generator.res, 'created')
+        generator.get_instance({'record': 1, 'numero': '23'})
+        self.assertEqual(generator.res, 'updated')
+        generator.get_instance({'record': 2, 'numero': '22'})
         self.assertEqual(generator.res, 'created')

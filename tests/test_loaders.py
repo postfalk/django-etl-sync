@@ -1,10 +1,13 @@
+from __future__ import print_function
+from six import text_type, binary_type, StringIO
+from builtins import str as text
+
 import os
 import re
 import glob
 import warnings
-from six import StringIO
 from django.db import transaction
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from etl_sync.loaders import (
     get_logfilename, FeedbackCounter)
 from .utils import captured_output
@@ -83,7 +86,10 @@ class TestInit(TestCase):
             self.assertEqual(loader.feedbacksize, 30)
 
 
-class TestfileTestCase(TestCase):
+class TestLoad(TransactionTestCase):
+    """
+    Tests data loading from file.
+    """
 
     def setUp(self):
         path = os.path.dirname(os.path.realpath(__file__))
@@ -93,16 +99,52 @@ class TestfileTestCase(TestCase):
         path = os.path.dirname(os.path.realpath(__file__))
         files = glob.glob('%s/data.txt.*.log' % path)
         (os.remove(fil) for fil in files)
-        TestModel.objects.all().delete()
-
-
-class TestLoad(TestfileTestCase):
-    """
-    Tests data loading from file.
-    """
 
     def test_load_from_file(self):
-        with transaction.atomic():
-            loader = Loader(filename=self.filename, model_class=TestModel)
-            loader.load()
+        loader = Loader(filename=self.filename, model_class=TestModel)
+        loader.load()
+        self.assertEqual(TestModel.objects.all().count(), 3)
+
+
+class TestExtractor(TestCase):
+    """Test newly introduced ExtractorClass."""
+
+    def setUp(self):
+        self.filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'data.txt')
+
+    def test_fileload(self):
+        extractor = Extractor(self.filename)
+        with extractor as ex:
+            ct = 0
+            for item in ex:
+                ct += 1
+                self.assertTrue(isinstance(item, dict))
+            self.assertEqual(ct, 3)
+            ct = 0
+
+    def test_filelikeobject(self):
+        with open(self.filename) as fil:
+            content = StringIO(text_type(fil.read()))
+        extractor = Extractor(content)
+        with extractor as ex:
+            ct = 0
+            for item in ex:
+                ct += 1
+                self.assertTrue(isinstance(item, dict))
+            self.assertEqual(ct, 3)
+            ct = 0
+
+
+class TestFileLikeObjectInLoader(TestCase):
+
+    def setUp(self):
+        self.filename = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'data.txt')
+
+    def test_filelikeobject(self):
+        with open(self.filename) as fil:
+            content = StringIO(text_type(fil.read()))
+        loader = Loader(filename=content, model_class=TestModel)
+        loader.load()
         self.assertEqual(TestModel.objects.all().count(), 3)

@@ -17,5 +17,5 @@ if __name__ == "__main__":
         pass
     TestRunner = get_runner(settings)
     test_runner = TestRunner()
-    failures = test_runner.run_tests(["tests.test_generators"])
+    failures = test_runner.run_tests(['tests'])
     sys.exit(bool(failures))
