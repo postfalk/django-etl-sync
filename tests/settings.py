@@ -26,6 +26,6 @@ SECRET_KEY = 'fake-key'
 
 # Load machine specific setups (might be required to properly config spatialite)
 try:
-    from .test_settings_local import *
+    from .settings_local import *
 except ImportError:
     pass

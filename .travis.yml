@@ -22,6 +22,6 @@ install:
  - python setup.py -q install
  - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10
 script:
-    coverage run --source etl_sync runtests.py
+    coverage run --source etl_sync runtests.py && coverage report
 after_success:
     coveralls

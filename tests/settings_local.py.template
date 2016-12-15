@@ -1,7 +1,9 @@
-from .test_settings import *
+from .settings import *
+
 
 LOCAL_SETTINGS = True
 DEBUG = True
+
 
 # required on MacOSX
 # read
