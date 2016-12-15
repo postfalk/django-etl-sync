@@ -4,10 +4,8 @@ from builtins import str as text
 
 from future.utils import iteritems
 from hashlib import md5
-from django.utils import version
 from django.core.exceptions import ValidationError, FieldError
-from django.db.models import (Q, Model, FieldDoesNotExist)
-from django.forms.models import model_to_dict
+from django.db.models import (Q, FieldDoesNotExist)
 from django.forms import DateTimeField
 
 
@@ -40,7 +38,7 @@ def get_fields(model_class):
         for fn in model_class._meta.get_all_field_names():
             try:
                 ret.append(model_class._meta.get_field(fn))
-            except model_class.FieldDoesNotExist:
+            except FieldDoesNotExist:
                 pass
         return ret
 
