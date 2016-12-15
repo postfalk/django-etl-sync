@@ -7,6 +7,7 @@ import os
 from unittest import TestCase
 from etl_sync.readers import unicode_dic, OGRReader
 
+
 class TestReaders(TestCase):
     """
     Test readers, encoding problems in particular.
