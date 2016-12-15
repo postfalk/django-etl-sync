@@ -1,7 +1,8 @@
 *.pyc
 *.log
 *.egg-info
-tests/test_settings_local.py
+.coverage
+tests/settings_local.py
 dist/
 
 # Sphinx stuff
