@@ -69,14 +69,17 @@ class BaseGenerator(object):
 
     def __init__(self, model_class, **options):
         self.model_class = model_class
-        self.field_names = [field.name for field in get_fields(model_class)]
-        self.pers = self.persistence or options.get('persistence', [])
-        if not isinstance(self.pers, list):
-            self.pers = [self.pers]
         self.related_instances = {}
         self.create = options.get('create', True)
         self.update = options.get('update', True)
         self.res = None
+        self.persistence = (
+            self.persistence or options.get('persistence') or
+            get_unambiguous_fields(self.model_class))
+        if isinstance(self.persistence, (text_type, binary_type)):
+            self.persistence = [self.persistence]
+        self.model_fields = sorted(get_fields(self.model_class))
+        self.field_names = [field.name for field in self.model_fields]
 
     def get_persistence_query(self, dic, persistence, update):
         return dic, self.get_from_db(dic, persistence), update
@@ -105,9 +108,7 @@ class BaseGenerator(object):
 
     def instance_from_dic(self, dic):
         dic = self.prepare(dic)
-        persistence = self.persistence or self.pers or get_unambiguous_fields(
-            self.model_class)
-        persistence = dic.pop('etl_persistence', persistence)
+        persistence = dic.pop('etl_persistence', self.persistence)
         create = dic.pop('etl_create', self.create)
         update = dic.pop('etl_update', self.update)
         dic, qs, update = self.get_persistence_query(dic, persistence, update)
@@ -133,7 +134,7 @@ class BaseGenerator(object):
 
     def instance_from_str(self, string):
         unique_string_fields = [
-            field for field in get_fields(self.model_class)
+            field for field in self.model_fields
             if get_internal_type(field) == 'CharField' and
             field.unique]
         if len(unique_string_fields) == 1:
