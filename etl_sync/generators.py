@@ -78,7 +78,7 @@ class BaseGenerator(object):
             get_unambiguous_fields(self.model_class))
         if isinstance(self.persistence, (text_type, binary_type)):
             self.persistence = [self.persistence]
-        self.model_fields = sorted(get_fields(self.model_class))
+        self.model_fields = get_fields(self.model_class)
         self.field_names = [field.name for field in self.model_fields]
 
     def get_persistence_query(self, dic, persistence, update):
