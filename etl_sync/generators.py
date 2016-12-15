@@ -1,8 +1,9 @@
 from __future__ import print_function
 from six import text_type, binary_type
 from builtins import str as text
-
 from future.utils import iteritems
+
+from collections import OrderedDict
 from hashlib import md5
 from django.core.exceptions import ValidationError, FieldError
 from django.db.models import (Q, FieldDoesNotExist)
@@ -64,6 +65,15 @@ def get_unambiguous_fields(model_class):
         'Failure to identify unambiguous field for {}'.format(model_class))
 
 
+def get_unique_string_fields(model_class):
+    """Unique string fields are used to auto normalize ForeignKey
+    relations."""
+    return [
+        field for field in get_fields(model_class)
+        if get_internal_type(field) == 'CharField' and
+        field.unique]
+
+
 class BaseGenerator(object):
     persistence = None
 
@@ -79,7 +89,10 @@ class BaseGenerator(object):
         if isinstance(self.persistence, (text_type, binary_type)):
             self.persistence = [self.persistence]
         self.model_fields = get_fields(self.model_class)
-        self.field_names = [field.name for field in self.model_fields]
+        self.field_names = OrderedDict([
+            (field.name, get_internal_type(field))
+            for field in self.model_fields])
+        self.unique_string_fields = get_unique_string_fields(self.model_class)
 
     def get_persistence_query(self, dic, persistence, update):
         return dic, self.get_from_db(dic, persistence), update
@@ -133,14 +146,9 @@ class BaseGenerator(object):
         return self.model_class.objects.get(pk=pk)
 
     def instance_from_str(self, string):
-        unique_string_fields = [
-            field for field in self.model_fields
-            if get_internal_type(field) == 'CharField' and
-            field.unique]
-        if len(unique_string_fields) == 1:
-            dic = {unique_string_fields[0].name: string}
-            ret = self.instance_from_dic(dic)
-            return ret
+       if len(self.unique_string_fields) == 1:
+            dic = {self.unique_string_fields[0].name: string}
+            return self.instance_from_dic(dic)
 
     def assign_related(self, instance):
         for (key, lst) in iteritems(self.related_instances):
