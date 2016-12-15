@@ -28,8 +28,7 @@ class Transformer(object):
             if frm.is_valid():
                 dic.update(frm.cleaned_data)
             else:
-                for error in frm.errors['__all__']:
-                    raise ValidationError(error)
+                raise ValidationError(frm.errors)
         return dic
 
     def _apply_defaults(self, dictionary):

@@ -1,15 +1,33 @@
 # Python 3.x compatibility
 from __future__ import absolute_import
-from six import text_type
-from future.utils import iteritems
 
 from unittest import TestCase
 from etl_sync.transformations import Transformer
+from django import forms
+from datetime import datetime
+
+
+class MyForm(forms.Form):
+    name = forms.CharField(max_length=10)
+    date = forms.DateTimeField(required=True)
+
+
+class MyTransformer(Transformer):
+    forms = [MyForm]
+
 
 class TestTransformer(TestCase):
 
     def helper(self, transformer):
         transformer.cleaned_data
+
+    def test_init(self):
+        dic = {'test': 'test'}
+        transformer = Transformer(dic)
+        self.assertEqual(transformer.dic, dic)
+        self.assertEqual(Transformer.defaults, {})
+        transformer = Transformer(dic, defaults={'name': 'fred'})
+        self.assertEqual(transformer.defaults, {'name': 'fred'})
 
     def test_base_transformer(self):
         dic = {'test1': 'testus', 'test2': 'testus testus'}
@@ -38,4 +56,9 @@ class TestTransformer(TestCase):
         transformer.blacklist = {'another_field': [r'^rubish']}
         self.assertFalse(transformer.is_valid())
 
-
+    def test_django_forms(self):
+        transformer = MyTransformer({'name': 'fred', 'date': '2001-01-01'})
+        self.assertTrue(transformer.is_valid())
+        self.assertIsInstance(transformer.cleaned_data['date'], datetime)
+        transformer = MyTransformer({'name': 'fred'})
+        self.assertFalse(transformer.is_valid())
