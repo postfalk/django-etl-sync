@@ -184,6 +184,12 @@ class BaseGenerator(object):
     def prepare(self, dic):
         return dic
 
+    def finalize(self):
+        """Override this method to finalize your data generation job,
+        e.g. close files, write buffered data to disk or database, etc.
+        It will be called once the Loader finishes its loop."""
+        return True
+
 
 class InstanceGenerator(BaseGenerator):
     preparations = {

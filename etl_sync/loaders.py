@@ -292,5 +292,6 @@ class Loader(object):
                 except StopIteration:
                     break
 
-            logger.log(counter.finished())
+            if generator.finalize():
+                logger.log(counter.finished())
             logger.close()
