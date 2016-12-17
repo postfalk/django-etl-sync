@@ -6,7 +6,7 @@ from future.utils import iteritems
 from collections import OrderedDict
 from hashlib import md5
 from django.core.exceptions import ValidationError, FieldError
-from django.db.models import (Q, FieldDoesNotExist)
+from django.db.models import (Q, FieldDoesNotExist, Model)
 from django.forms import DateTimeField
 
 
@@ -143,7 +143,12 @@ class BaseGenerator(object):
                 'Double Entry found for {}'.format(persistence))
 
     def instance_from_int(self, pk):
-        return self.model_class.objects.get(pk=pk)
+        try:
+            return self.model_class.objects.get(pk=pk)
+        except self.model_class.DoesNotExist:
+            raise ValueError(
+                'Value {} does not exist in ForeignKey {}'.format(
+                    pk, self.model_class))
 
     def instance_from_str(self, string):
        if len(self.unique_string_fields) == 1:

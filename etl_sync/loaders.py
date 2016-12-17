@@ -284,7 +284,7 @@ class Loader(object):
                     try:
                         generator.get_instance(dic)
                     except (ValidationError, IntegrityError,
-                            DatabaseError) as e:
+                            DatabaseError, ValueError) as e:
                         self.generator_reject(counter, logger, e)
                         continue
                     counter.use_result(generator.res)

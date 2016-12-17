@@ -291,6 +291,12 @@ class TestRejection(TestCase):
         with self.assertRaises(IntegrityError):
             generator.get_instance(dic)
 
+    def test_rejection_by_missing_fk(self):
+        dic = {'record': '30', 'date': '2014-01-01', 'numero': 2}
+        generator = InstanceGenerator(models.TestModel)
+        with self.assertRaises(ValueError):
+            generator.get_instance(dic)
+
 
 class TestMiscModelFunctionality(TestCase):
 
