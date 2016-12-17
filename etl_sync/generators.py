@@ -228,7 +228,7 @@ class InstanceGenerator(BaseGenerator):
             return formfield.clean(value)
 
     def prepare_text(self, field, value):
-        if not isinstance(value, text_type):
+        if not isinstance(value, (text_type, binary_type)):
             ret = text(value)
         else:
             ret = value
@@ -255,7 +255,7 @@ class InstanceGenerator(BaseGenerator):
 
     def prepare_geometry(self, field, value):
         """
-        Reduce geometry to two dimensions if models. GeometryField
+        Reduce geometry to two dimensions if GeometryField's
         dim parameter is not set otherwise.
         """
         from django.contrib.gis.geos import WKBWriter, GEOSGeometry
@@ -268,16 +268,18 @@ class InstanceGenerator(BaseGenerator):
         return value
 
     def prepare(self, dic):
+        ret = {}
         for field in get_fields(self.model_class):
             if field.name not in dic:
                 continue
             fieldtype = get_internal_type(field)
             prepare_function = getattr(
                 self, self.preparations[fieldtype], self.prepare_field)
-            dic[field.name] = prepare_function(field, dic[field.name])
-            if fieldtype == 'ManyToManyField':
-                del dic[field.name]
-        return dic
+            res = prepare_function(field, dic.pop(field.name))
+            if res:
+                ret[field.name] = res
+        ret.update(dic)
+        return ret
 
 
 class HashMixin(object):
