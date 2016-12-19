@@ -300,7 +300,9 @@ class TestRejection(TestCase):
 
 class TestMiscModelFunctionality(TestCase):
 
-    def test_signals(self):
+    # This functionality has been removed for performance reason
+    # but can be easily re-instated through sub-classing.
+    def __test_signals(self):
         """Test whether auto_now=True fields get updated as well."""
         models.TestModelWoFk.objects.all().delete()
         dic = {'record': '1110'}

@@ -92,6 +92,9 @@ class BaseGenerator(object):
         self.field_names = OrderedDict([
             (field.name, get_internal_type(field))
             for field in self.model_fields])
+        self.field_names.update(OrderedDict([(
+            item + '_id', 'ForeignKey') for item, tp in self.field_names.items()
+            if tp == 'ForeignKey']))
         self.unique_string_fields = get_unique_string_fields(self.model_class)
 
     def get_persistence_query(self, dic, persistence, update):
@@ -114,9 +117,20 @@ class BaseGenerator(object):
         return self.model_class.objects.create(**dic)
 
     def update_in_db(self, dic, qs):
+        """Updates record in the database. Be aware of following changes
+        which were made for performance reasons.
+        1. Check for qs length was removed. If persistence queryset has more
+        than one model all will be updated. Secure in model setup or override.
+        2. The new setup will not trigger post save models.
+
+        Args:
+            dic(dict): Data dictionary.
+            qs(QuerySet): A django queryset.
+
+        Returns:
+            Model instance: First model instance.
+        """
         qs.update(**dic)
-        # This save is issued to trigger signals. Not very elegant.
-        qs[0].save()
         return qs[0]
 
     def instance_from_dic(self, dic):
@@ -126,21 +140,18 @@ class BaseGenerator(object):
         update = dic.pop('etl_update', self.update)
         dic, qs, update = self.get_persistence_query(dic, persistence, update)
         dic = {item:dic[item] for item in dic if item in self.field_names}
-        count = len(qs)
-        if count == 0 and create:
-            instance = self.create_in_db(dic)
-            self.res = 'created'
-            return instance
-        if count == 1:
+        if qs:
             if update:
                 instance = self.update_in_db(dic, qs)
                 self.res = 'updated'
                 return instance
             else:
                 self.res = 'exists'
-        if count > 1:
-            raise ValidationError(
-                'Double Entry found for {}'.format(persistence))
+        else:
+            if create:
+                instance = self.create_in_db(dic)
+                self.res = 'created'
+                return instance
 
     def instance_from_int(self, pk):
         try:
@@ -192,7 +203,11 @@ class BaseGenerator(object):
     def finalize(self):
         """Override this method to finalize your data generation job,
         e.g. close files, write buffered data to disk or database, etc.
-        It will be called once the Loader finishes its loop."""
+        It will be called once the Loader finishes its loop.
+
+        Returns:
+            boolean: True if succesful.
+        """
         return True
 
 
