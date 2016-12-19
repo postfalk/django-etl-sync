@@ -82,6 +82,7 @@ class BaseGenerator(object):
         self.related_instances = {}
         self.create = options.get('create', True)
         self.update = options.get('update', True)
+        self.related_field = options.get('related_field')
         self.res = None
         self.persistence = (
             self.persistence or options.get('persistence') or
@@ -92,9 +93,6 @@ class BaseGenerator(object):
         self.field_names = OrderedDict([
             (field.name, get_internal_type(field))
             for field in self.model_fields])
-        self.field_names.update(OrderedDict([(
-            item + '_id', 'ForeignKey') for item, tp in self.field_names.items()
-            if tp == 'ForeignKey']))
         self.unique_string_fields = get_unique_string_fields(self.model_class)
 
     def get_persistence_query(self, dic, persistence, update):
@@ -153,13 +151,14 @@ class BaseGenerator(object):
                 self.res = 'created'
                 return instance
 
-    def instance_from_int(self, pk):
+    def instance_from_int(self, intnumber):
+        query = {self.related_field or 'pk': intnumber}
         try:
-            return self.model_class.objects.get(pk=pk)
+            return self.model_class.objects.get(**query)
         except self.model_class.DoesNotExist:
             raise ValueError(
-                'Value {} does not exist in ForeignKey {}'.format(
-                    pk, self.model_class))
+                'Value {} for field {} does not exist in ForeignKey {}'.format(
+                    intnumber, self.related_field or 'pk', self.model_class))
 
     def instance_from_str(self, string):
        if len(self.unique_string_fields) == 1:
@@ -206,7 +205,7 @@ class BaseGenerator(object):
         It will be called once the Loader finishes its loop.
 
         Returns:
-            boolean: True if succesful.
+            boolean: True if successful.
         """
         return True
 
@@ -229,7 +228,9 @@ class InstanceGenerator(BaseGenerator):
         return value
 
     def prepare_fk(self, field, value):
-        return InstanceGenerator(field.rel.to).get_instance(value)
+        rel_field = field.related_fields[0][1].name
+        return InstanceGenerator(
+            field.rel.to, related_field=rel_field).get_instance(value)
 
     def prepare_m2m(self, field, lst):
         # defer assignment of related instances until instance
