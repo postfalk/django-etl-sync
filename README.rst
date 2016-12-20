@@ -8,12 +8,15 @@ Django ETL Sync
 .. image:: https://img.shields.io/pypi/v/django-etl_sync.svg
     :target: https://pypi.python.org/pypi/django-etl_sync/
     
+.. warning::
+    Package is currently under major rework. Some of this documentation might be out of date in the master branch. Use release 0.2.2 for a stable version. 
+
 
 ETL based on Django model introspection.
 
 Django-etl-sync derives ETL rules from Django model introspection and is able to trace and create relationships such as foreign keys and many-to-many relationship.
 
-The package currently lacks a method to move records no longer present in upstream data.
+The package currently lacks a method to remove records no longer present in upstream data.
 
 The project was originall developed to manage upstream data sources for the Berkeley Ecoinformatics Engine, see https://ecoengine.berkeley.edu/. 
 
@@ -40,13 +43,13 @@ Requirements
 Installation
 ------------
 
-The package is in active development toward a release. For evaluation, contribution, and testing
+The package is in active development toward a new release. For evaluation, contribution, and testing
 
 .. code-block:: sh
 
     pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync
 
-or for usage
+or for production usage (This will be version 0.2.2, this version hasa couple of breaking changes.)
 
 .. code-block:: sh
 
@@ -117,8 +120,8 @@ Minimal example: dictionary load
 
     if __name__ == '__main__':
         # add additional transformations here
-        generator = BaseInstanceGenerator(TestModel, dic)
-        instance = generator.get_instance()
+        generator = BaseInstanceGenerator(TestModel)
+        instance = generator.get_instance(dic)
         print(instance, generator.res)
 
 
@@ -138,11 +141,11 @@ Another method to add (or overwrite) persistence criterions is to add a list of 
 .. code-block:: python
 
     generator = InstanceGenerator(
-        TestModel, dic, persistence = ['record', 'source'])
+        TestModel, persistence = ['record', 'source'])
 
 **Subclassing**
 
-You can subclass InstanceGenerator to create your own generator class with a specific persistence criterion.
+You can subclass InstanceGenerator and create your own generator class with a specific persistence criterion.
 
 .. code-block:: python
 
@@ -210,7 +213,6 @@ The package currently contains a reader for OGR readable files.
     class MyMapper(Mapper):
         reader_class=OGRReader
         
-The ``OGRReader`` *covers the functionality of the older* ``ShapefileReader`` class there is still a stub ``ShapefileReader`` for compatibility. It will be removed in version 1.0.
 
 Transformations
 ---------------
@@ -232,7 +234,7 @@ Instantiate ``InstanceGenerator`` with a customized ``Transformer`` class:
         blacklist = {'last_name': ['NA', r'unknown']}
 
     class MyLoader(Loader):
-        model_class = {destination model}
+        model_class = SomeModel
         transformer_class = MyTransformer
 
     loader = MyLoader(filename=myfile.txt)
