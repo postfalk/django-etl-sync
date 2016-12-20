@@ -114,8 +114,9 @@ class Extractor(object):
     reader_class = csv.DictReader
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
 
-    def __init__(self, source):
+    def __init__(self, source, options={}):
         self.source = source
+        self.options = options
 
     def __enter__(self):
         """
@@ -185,27 +186,23 @@ class Loader(object):
     extractor_class = Extractor
     generator_class = InstanceGenerator
     model_class = None
-    filename = None # move to init
-    encoding = 'utf-8' # to be deprecated
-    slice_begin = 0 # move to init
-    slice_end = None # move to init
-    defaults = {} # to be deprecated in 1.0, set in Transformer class
-    create_new = True
-    update = True
-    create_foreign_key = True
-    etl_persistence = ['record']
+    persistence = []
 
-    def __init__(self, *args, **kwargs):
-        self.source = kwargs.get('filename')
-        self.logfilename = kwargs.get('logfilename')
-        self.model_class = kwargs.get('model_class') or self.model_class
-        self.feedbacksize = getattr(settings, 'ETL_FEEDBACK',
-                                    kwargs.get('feedbacksize', 5000))
+    def __init__(self, source, model_class=None, options={}):
+        self.source = source
+        self.options = options
+        self.model_class = model_class or self.model_class
+        self.logfilename = options.get('logfilename')
+        self.feedbacksize = getattr(
+            settings, 'ETL_FEEDBACK', options.get('feedbacksize', 5000))
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
-        self.extractor = self.extractor_class(self.source)
-        self.slice_begin = kwargs.get('slice_begin', 0)
-        self.slice_end = kwargs.get('slice_end')
+        self.extractor = self.extractor_class(self.source, options=options)
+        self.slice_begin = options.get('slice_begin', 0)
+        self.slice_end = options.get('slice_end')
+        self.generator = self.generator_class(
+            self.model_class, persistence=self.persistence, options=options)
+        self.options = options
 
     def feedback_hook(self, counter):
         """Create actions that will be triggered after the number of records
@@ -245,12 +242,9 @@ class Loader(object):
         """
         Loads data into database using Django models and error logging.
         """
-        print('Opening {0} using {1}'.format(self.source, self.encoding))
+        print('Opening {0}'.format(self.source))
         logger = Logger(self.logfile)
         counter = FeedbackCounter()
-
-        generator = self.generator_class(
-            self.model_class, persistence=self.etl_persistence)
 
         with self.extractor as extractor:
 
@@ -282,16 +276,16 @@ class Loader(object):
                         continue
 
                     try:
-                        generator.get_instance(dic)
+                        self.generator.get_instance(dic)
                     except (ValidationError, IntegrityError,
                             DatabaseError, ValueError) as e:
                         self.generator_reject(counter, logger, e)
                         continue
-                    counter.use_result(generator.res)
+                    counter.use_result(self.generator.res)
                     self.feedback(counter)
                 except StopIteration:
                     break
 
-            if generator.finalize():
+            if self.generator.finalize():
                 logger.log(counter.finished())
             logger.close()

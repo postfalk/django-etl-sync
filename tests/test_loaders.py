@@ -1,12 +1,9 @@
 from __future__ import print_function
-from six import text_type, binary_type, StringIO
-from builtins import str as text
+from six import text_type, StringIO
 
 import os
 import re
 import glob
-import warnings
-from django.db import transaction
 from django.test import TestCase, TransactionTestCase
 from etl_sync.loaders import (
     get_logfilename, FeedbackCounter)
@@ -65,24 +62,26 @@ class TestFeedbackCounter(TestCase):
 class TestInit(TestCase):
 
     def test_logfilename(self):
-        loader = Loader(filename='data.csv')
+        loader = Loader('data.csv', model_class=TestModel)
         name = loader.logfile.name
         self.assertTrue(
             re.match(r'^data.csv.\d{4}-\d{2}-\d{2}.log$', name))
         os.remove(name)
-        loader = Loader(filename='data.csv', logfilename='test.log')
+        options = {'logfilename': 'test.log'}
+        loader = Loader('data.csv', model_class=TestModel, options=options)
         self.assertEqual(loader.logfile.name, 'test.log')
         os.remove('test.log')
-        loader = Loader(filename=StringIO('test'))
+        loader = Loader(StringIO('test'), model_class=TestModel)
         self.assertFalse(loader.logfile)
 
     def test_feedbacksize(self):
-        loader = Loader()
+        loader = Loader(None, model_class=TestModel)
         self.assertEqual(loader.feedbacksize, 5000)
-        loader = Loader(feedbacksize=20)
+        options = {'feedbacksize': 20}
+        loader = Loader(None, model_class=TestModel, options=options)
         self.assertEqual(loader.feedbacksize, 20)
         with self.settings(ETL_FEEDBACK=30):
-            loader = Loader()
+            loader = Loader(None, model_class=TestModel)
             self.assertEqual(loader.feedbacksize, 30)
 
 
@@ -101,7 +100,7 @@ class TestLoad(TransactionTestCase):
         (os.remove(fil) for fil in files)
 
     def test_load_from_file(self):
-        loader = Loader(filename=self.filename, model_class=TestModel)
+        loader = Loader(self.filename, model_class=TestModel)
         loader.load()
         self.assertEqual(TestModel.objects.all().count(), 3)
 
@@ -145,6 +144,17 @@ class TestFileLikeObjectInLoader(TestCase):
     def test_filelikeobject(self):
         with open(self.filename) as fil:
             content = StringIO(text_type(fil.read()))
-        loader = Loader(filename=content, model_class=TestModel)
+        loader = Loader(content, model_class=TestModel)
         loader.load()
         self.assertEqual(TestModel.objects.all().count(), 3)
+
+
+class TestOptionPassing(TestCase):
+
+    def test_optionpassing(self):
+        options = {
+            'create': False,
+            'update': True}
+        ldr = Loader('test', model_class=TestModel, options=options)
+        self.assertEqual(ldr.extractor.options, options)
+        self.assertFalse(ldr.generator.create)

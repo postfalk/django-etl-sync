@@ -77,7 +77,7 @@ def get_unique_string_fields(model_class):
 class BaseGenerator(object):
     persistence = None
 
-    def __init__(self, model_class, **options):
+    def __init__(self, model_class, persistence=[], options={}):
         self.model_class = model_class
         self.related_instances = {}
         self.create = options.get('create', True)
@@ -85,7 +85,7 @@ class BaseGenerator(object):
         self.related_field = options.get('related_field')
         self.res = None
         self.persistence = (
-            self.persistence or options.get('persistence') or
+            self.persistence or persistence or
             get_unambiguous_fields(self.model_class))
         if isinstance(self.persistence, (text_type, binary_type)):
             self.persistence = [self.persistence]
@@ -228,9 +228,9 @@ class InstanceGenerator(BaseGenerator):
         return value
 
     def prepare_fk(self, field, value):
-        rel_field = field.related_fields[0][1].name
+        options = {'related_field': field.related_fields[0][1].name}
         return InstanceGenerator(
-            field.rel.to, related_field=rel_field).get_instance(value)
+            field.rel.to, options=options).get_instance(value)
 
     def prepare_m2m(self, field, lst):
         # defer assignment of related instances until instance
