@@ -6,7 +6,7 @@ from future.utils import iteritems
 from collections import OrderedDict
 from hashlib import md5
 from django.core.exceptions import ValidationError, FieldError
-from django.db.models import (Q, FieldDoesNotExist, Model)
+from django.db.models import (Q, FieldDoesNotExist)
 from django.forms import DateTimeField
 
 
@@ -132,10 +132,10 @@ class BaseGenerator(object):
         return qs[0]
 
     def instance_from_dic(self, dic):
-        dic = self.prepare(dic)
         persistence = dic.pop('etl_persistence', self.persistence)
         create = dic.pop('etl_create', self.create)
         update = dic.pop('etl_update', self.update)
+        dic = self.prepare(dic)
         dic, qs, update = self.get_persistence_query(dic, persistence, update)
         dic = {item:dic[item] for item in dic if item in self.field_names}
         if qs:
@@ -299,7 +299,6 @@ class InstanceGenerator(BaseGenerator):
             res = prepare_function(field, dic.pop(field.name))
             if res:
                 ret[field.name] = res
-        ret.update(dic)
         return ret
 
 
