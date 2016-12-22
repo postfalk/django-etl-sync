@@ -380,6 +380,12 @@ class TestPreparations(TestCase):
         res = generator.prepare_text(CharField(max_length=3), 'test')
         self.assertEqual(res, 'tes')
 
+    def test_prepare(self):
+        """Testing whether result gets properly added to dic."""
+        generator = InstanceGenerator(models.WellDefinedModel)
+        res = generator.prepare({'something': 'thing', 'somenumber': 0})
+        self.assertEqual(res['somenumber'], 0)
+
 
 class TestResults(TestCase):
 

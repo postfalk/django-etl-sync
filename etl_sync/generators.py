@@ -297,7 +297,7 @@ class InstanceGenerator(BaseGenerator):
             prepare_function = getattr(
                 self, self.preparations[fieldtype], self.prepare_field)
             res = prepare_function(field, dic.pop(field.name))
-            if res:
+            if res is not None:
                 ret[field.name] = res
         return ret
 
