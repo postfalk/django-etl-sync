@@ -212,6 +212,7 @@ class BaseGenerator(object):
 
 class InstanceGenerator(BaseGenerator):
     preparations = {
+        'AutoField': 'prepare_none',
         'ForeignKey': 'prepare_fk',
         'OneToOneField': 'prepare_fk',
         'ManyToManyField': 'prepare_m2m',
@@ -223,6 +224,9 @@ class InstanceGenerator(BaseGenerator):
         'IntegerField': 'prepare_integer',
         'BigIntegerField': 'prepare_integer',
         'FloatField': 'prepare_float'}
+
+    def prepare_none(self, field, value):
+        return None
 
     def prepare_field(self, field, value):
         return value
