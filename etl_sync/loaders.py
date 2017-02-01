@@ -149,7 +149,7 @@ class Logger(object):
         'Text decoding or CSV error in line {0}: {1} => rejected')
     instance_error_message = (
         'Instance generation error in line {0}: {1} => rejected')
-    instance_error_message = (
+    transformation_error_message = (
         'Transformation error in line {0}: {1} => rejected')
 
     def __init__(self, logfile):
@@ -167,8 +167,8 @@ class Logger(object):
     def log_reader_error(self, line, error):
         self.log(self.reader_error_message.format(line, text(error)))
 
-    def log_transformation_error(self, line, error):
-        self.log(self.transformation_error_message.format(line, text(error)))
+    def log_transformation_error(self, line):
+        self.log(self.transformation_error_message.format(line, 'Transformation failed.'))
 
     def log_instance_error(self, line, error):
         self.log(self.instance_error_message.format(line, text(error)))
@@ -228,8 +228,8 @@ class Loader(object):
         counter.reject()
         self.feedback(counter)
 
-    def transformation_reject(self, counter, logger, e):
-        logger.log_transformation_error(counter.counter, e)
+    def transformation_reject(self, counter, logger):
+        logger.log_transformation_error(counter.counter)
         counter.reject()
         self.feedback(counter)
 
@@ -272,7 +272,7 @@ class Loader(object):
                     if transformer.is_valid():
                         dic = transformer.cleaned_data
                     else:
-                        self.transformation_reject(counter, logger, e)
+                        self.transformation_reject(counter, logger)
                         continue
 
                     try:
