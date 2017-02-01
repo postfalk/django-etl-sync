@@ -238,6 +238,30 @@ class Loader(object):
         counter.reject()
         self.feedback(counter)
 
+    def process(self, extractor, counter, logger):
+        try:
+            dic = extractor.next()
+        except (UnicodeDecodeError, csv.Error) as e:
+            self.reader_reject(counter, logger, e)
+            return
+
+        transformer = self.transformer_class(dic)
+        if transformer.is_valid():
+            dic = transformer.cleaned_data
+        else:
+            self.transformation_reject(counter, logger)
+            return
+
+        try:
+            self.generator.get_instance(dic)
+        except (ValidationError, IntegrityError,
+                DatabaseError, ValueError) as e:
+            self.generator_reject(counter, logger, e)
+            return
+        counter.use_result(self.generator.res)
+        self.feedback(counter)
+
+
     def load(self):
         """
         Loads data into database using Django models and error logging.
@@ -260,29 +284,7 @@ class Loader(object):
             while not self.slice_end or self.slice_end >= counter.counter:
 
                 try:
-                    try:
-                        dic = extractor.next()
-                    except (UnicodeDecodeError, csv.Error) as e:
-                        self.reader_reject(counter, logger, e)
-                        continue
-                    except StopIteration:
-                        break
-
-                    transformer = self.transformer_class(dic)
-                    if transformer.is_valid():
-                        dic = transformer.cleaned_data
-                    else:
-                        self.transformation_reject(counter, logger)
-                        continue
-
-                    try:
-                        self.generator.get_instance(dic)
-                    except (ValidationError, IntegrityError,
-                            DatabaseError, ValueError) as e:
-                        self.generator_reject(counter, logger, e)
-                        continue
-                    counter.use_result(self.generator.res)
-                    self.feedback(counter)
+                    self.process(extractor, counter, logger)
                 except StopIteration:
                     break
 
