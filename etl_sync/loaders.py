@@ -167,8 +167,8 @@ class Logger(object):
     def log_reader_error(self, line, error):
         self.log(self.reader_error_message.format(line, text(error)))
 
-    def log_transformation_error(self, line):
-        self.log(self.transformation_error_message.format(line, 'Transformation failed.'))
+    def log_transformation_error(self, line, error):
+        self.log(self.transformation_error_message.format(line, text(error)))
 
     def log_instance_error(self, line, error):
         self.log(self.instance_error_message.format(line, text(error)))
@@ -228,8 +228,8 @@ class Loader(object):
         counter.reject()
         self.feedback(counter)
 
-    def transformation_reject(self, counter, logger):
-        logger.log_transformation_error(counter.counter)
+    def transformation_reject(self, counter, logger, e):
+        logger.log_transformation_error(counter.counter, e)
         counter.reject()
         self.feedback(counter)
 
@@ -239,6 +239,9 @@ class Loader(object):
         self.feedback(counter)
 
     def process(self, extractor, counter, logger):
+        """This is broken out from below and should be better
+        organized."""
+
         try:
             dic = extractor.next()
         except (UnicodeDecodeError, csv.Error) as e:
@@ -246,18 +249,23 @@ class Loader(object):
             return
 
         transformer = self.transformer_class(dic)
-        if transformer.is_valid():
-            dic = transformer.cleaned_data
-        else:
-            self.transformation_reject(counter, logger)
+        try:
+            if transformer.is_valid():
+                dic = transformer.cleaned_data
+            else:
+                raise ValidationError
+        except (ValidationError, ValueError, IndexError,
+                KeyError) as e:
+            self.transformation_reject(counter, logger, e)
             return
 
         try:
             self.generator.get_instance(dic)
-        except (ValidationError, IntegrityError,
-                DatabaseError, ValueError) as e:
+        except (ValidationError, IntegrityError, DatabaseError,
+                ValueError) as e:
             self.generator_reject(counter, logger, e)
             return
+
         counter.use_result(self.generator.res)
         self.feedback(counter)
 
@@ -268,21 +276,19 @@ class Loader(object):
         """
         print('Opening {0}'.format(self.source))
         logger = Logger(self.logfile)
+        logger.log_start({
+            'start_time': datetime.now().strftime('%Y-%m-%d'),
+            'slice_begin': self.slice_begin,
+            'slice_end': self.slice_end})
         counter = FeedbackCounter()
 
         with self.extractor as extractor:
-
-            logger.log_start({
-                'start_time': datetime.now().strftime('%Y-%m-%d'),
-                'slice_begin': self.slice_begin,
-                'slice_end': self.slice_end})
 
             while self.slice_begin and self.slice_begin > counter.counter:
                 extractor.next()
                 counter.increment()
 
             while not self.slice_end or self.slice_end >= counter.counter:
-
                 try:
                     self.process(extractor, counter, logger)
                 except StopIteration:
@@ -290,4 +296,5 @@ class Loader(object):
 
             if self.generator.finalize():
                 logger.log(counter.finished())
+
             logger.close()
