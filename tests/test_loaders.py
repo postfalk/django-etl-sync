@@ -80,9 +80,6 @@ class TestInit(TestCase):
         options = {'feedbacksize': 20}
         loader = Loader(None, model_class=TestModel, options=options)
         self.assertEqual(loader.feedbacksize, 20)
-        with self.settings(ETL_FEEDBACK=30):
-            loader = Loader(None, model_class=TestModel)
-            self.assertEqual(loader.feedbacksize, 30)
 
 
 class TestLoad(TransactionTestCase):

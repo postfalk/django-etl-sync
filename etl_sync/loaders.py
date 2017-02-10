@@ -7,7 +7,6 @@ import os
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, DatabaseError
-from django.conf import settings
 from etl_sync.generators import InstanceGenerator
 from etl_sync.transformations import Transformer
 
@@ -193,8 +192,7 @@ class Loader(object):
         self.options = options
         self.model_class = model_class or self.model_class
         self.logfilename = options.get('logfilename')
-        self.feedbacksize = getattr(
-            settings, 'ETL_FEEDBACK', options.get('feedbacksize', 5000))
+        self.feedbacksize = options.get('feedbacksize', 5000)
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
         self.extractor = self.extractor_class(self.source, options=options)
