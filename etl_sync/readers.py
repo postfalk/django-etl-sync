@@ -46,6 +46,7 @@ class OGRReader(object):
     def __init__(self, source, encoding='utf-8',
                  delimiter='', quoting='', target_epsg=4326,
                  feature_class_name=''):
+        # if source already open, close and reopen in OGR
         if hasattr(source, 'name'):
             s = source.name
             source.close()
