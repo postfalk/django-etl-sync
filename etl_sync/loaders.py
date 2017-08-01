@@ -110,12 +110,16 @@ class Extractor(object):
 
     Return reader instance.
     """
-    reader_class = csv.DictReader
-    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
 
-    def __init__(self, source, options={}):
+    def __init__(self, source, reader_class=csv.DictReader,
+                 reader_kwargs={
+                    'delimiter': u'\t', 'quoting': csv.QUOTE_NONE},
+                 options={}):
         self.source = source
         self.options = options
+        self.reader_class = reader_class or csv.DictReader
+        self.reader_kwargs = reader_kwargs or {
+            'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
 
     def __enter__(self):
         """
@@ -182,7 +186,8 @@ class Loader(object):
     Generic mapper object for ETL.
     """
     transformer_class = Transformer
-    extractor_class = Extractor
+    reader_class = csv.DictReader
+    reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     generator_class = InstanceGenerator
     model_class = None
     persistence = []
@@ -195,7 +200,8 @@ class Loader(object):
         self.feedbacksize = options.get('feedbacksize', 5000)
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
-        self.extractor = self.extractor_class(self.source, options=options)
+        self.extractor = Extractor(
+            self.source, self.reader_class, self.reader_kwargs, options=options)
         self.slice_begin = options.get('slice_begin', 0)
         self.slice_end = options.get('slice_end')
         self.generator = self.generator_class(
