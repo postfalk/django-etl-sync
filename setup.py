@@ -12,7 +12,7 @@ setup(
     description='Django ETL, derives rules from models, creates relations.',
     long_description=open('README.rst').read(),
     url='https://github.com/postfalk/django-etl-sync.git',
-    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.2.2',
+    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.3.1',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
     install_requires=['future', 'six', 'backports.csv'],
