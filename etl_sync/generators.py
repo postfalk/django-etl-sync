@@ -239,7 +239,8 @@ class InstanceGenerator(BaseGenerator):
         'BooleanField': 'prepare_boolean',
         'IntegerField': 'prepare_integer',
         'BigIntegerField': 'prepare_integer',
-        'FloatField': 'prepare_float'}
+        'FloatField': 'prepare_float',
+        'JSONField': 'prepare_text'}
 
     def prepare_none(self, field, value):
         return None
