@@ -199,8 +199,6 @@ class TestRelations(TestCase):
             generator = InstanceGenerator(models.TestModel)
             generator.get_instance(dic)
         res = models.Polish.objects.all()
-        for item in res:
-            print model_to_dict(item)
         self.assertEqual(res.count(), 3)
 
     def test_onetoone(self):
