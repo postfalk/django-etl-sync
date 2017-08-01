@@ -1,5 +1,5 @@
 Django ETL Sync
-===============
++++++++++++++++
 
 .. image:: https://travis-ci.org/postfalk/django-etl-sync.svg?branch=master
     :target: https://travis-ci.org/postfalk/django-etl-sync
@@ -8,30 +8,30 @@ Django ETL Sync
 .. image:: https://img.shields.io/pypi/v/django-etl_sync.svg
     :target: https://pypi.python.org/pypi/django-etl_sync/
     
-.. warning::
-    Package is currently under major rework. Some of this documentation might be out of date in the master branch. Use release 0.2.2 for a stable version. 
 
+**I am currently refactoring this package. Use release 0.2.2 for a stable and backwards compatible version. Use release 0.3.0 for new    projects. Perspectively, I will remove the Django dependency and will make the package usable in different contexts such as PyMongo or SQL.**
 
-ETL based on Django model introspection.
-
-Django-etl-sync derives ETL rules from Django model introspection and is able to trace and create relationships such as foreign keys and many-to-many relationship.
-
-The package currently lacks a method to remove records no longer present in upstream data.
-
-The project was originall developed to manage upstream data sources for the Berkeley Ecoinformatics Engine, see https://ecoengine.berkeley.edu/. 
-
+ETL using Django model introspection.
+=====================================
 
 Overview
 --------
+
+Django-etl-sync attemps to derive ETL rules from Django model introspection and is able to trace and create deeply nested relationships such as foreign keys and many-to-many relationships. The user can modify this rules by creating their own sub classes and methods. All Reader, Transformer, and Generator classes can be fully replaced by costum classes. Django forms can be used in place of Transformer classes.
+
+The package currently lacks a method of removing records no longer present in upstream data.
+
+The project was originall developed to synchronize an API with upstream data sources for the Berkeley Ecoinformatics Engine, see https://ecoengine.berkeley.edu/. 
+
+Features:
 
 - Re-usable Django app that provides classes for light weight ETL in your project. (Will be more independent from the Django framework in the future)
 - Geared toward sync'ing with upstream data sources (e.g. for an API) or legacy data (it was originally build for ecoengine.berkeley.edu loading million records from museum collection data with regular small changes).
 - Prioritizes data consistency over speed.
 - Subclassing allows for replacing of methods with speedier, simplified or more sophisticated versions.
 - Supports data persistence, consistency, normalization, and recreation of relationships from flatten files or dumps.
-- Derives ETL rules from Django model introspection (the use of other frameworks or database declarations is planned). This rules can be easily modified and overriden (as long as they do not cause integrity errors).
-- Can be easily used within a parallelization framework such as Celery, thorough checks of the state of the destination avoid race conditions and inconsistencies (at the cost of speed.)
-- Supports Django Forms as transformation rules. This way web forms within the app can be re-used as transformation rules.
+- Derives ETL rules from Django model introspection (the use of other frameworks or database declarations is planned). This rules can be easily modified and overriden.
+- Can be easily used within task cues and parallelization frameworks such as Celery, thorough checks of the state of the target avoids race conditions and inconsistencies (at the cost of speed).
 
 Requirements
 ------------
@@ -49,7 +49,7 @@ The package is in active development toward a new release. For evaluation, contr
 
     pip install -e git+ssh://git@github.com/postfalk/django-etl-sync#egg=django-etl-sync
 
-or for production usage (This will be version 0.2.2, this version hasa couple of breaking changes.)
+or for production usage 
 
 .. code-block:: sh
 
@@ -64,11 +64,9 @@ The module provides two principal ways of usage on either file or record level.
 
 1. Use the ``Loader`` class to specify all ETL operations. If you need to make changes to the data between reading from the file and writing them to the database create a custom ``Transformer`` class (see below).
 
-The loader class was called Mapper in earlier versions. There is still a ``Mapper`` class which is a wrapper of the ``Loader`` class that will throw an deprecation warning upon initialization (removal planned for version 1.0). Applications that were build using older versions will work for now.
+2. Use the ``Generator`` class to generate a Django model instance from a dictionary and return the instance. The input dictionary needs to satisfy all constraints of the model as defined by ``ModelField`` attributes. If this is not the case an error will be raised. The ``Loader`` class will catch this error and create a log entry. Apply transformations before passing the dictionary (or object) to the generator class.
 
-2. Use the ``Generator`` class to generate a Django model instance from a dictionary and return the instance. The input dictionary needs to satisfy all constraints of the model as defined by the ``ModelField`` attributes. If this is not the case an error will be thrown. The ``Loader`` class will catch this error and create a log entry. Apply transformations beforehand.
-
-The difference to simply creating an instance by calling ``Model(**dict)`` is a very thorough check for consistency and the creation of relationships. However, if the simple method is convenient, a Django Model could be used in place of the ``Generator``.
+The difference to simply creating an instance by calling ``Model(**dict)`` is a thorough check for consistency and the creation of nested relationships.
 
 Minimal example: file load
 --------------------------
@@ -98,12 +96,11 @@ Minimal example: file load
         """
         Add your specific settings here.
         """
-        filename = 'data.txt'
         model_class = TestModel
 
 
     if __name__ == '__main__':
-        loader = YourLoader()
+        loader = YourLoader(data.txt)
         res = loader.load()
 
 
@@ -130,13 +127,13 @@ Persistence
 
 **Unique fields**
 
-Before loading a record it might be necessary to check whether it already exists, whether it needs to be added or updated (persistence). By default the module inspects the target model and uses model fields with the attribute ``unique=True`` as criterion for persistence. The module will check first whether any record with the given combination of values in unique fields already exists and update that record.
+Before loading a record it might be necessary to check whether it already exists, whether it needs to be added or updated (persistence). By default the module inspects the target model and uses model fields with the attribute ``unique=True`` or the model Meta class attribute ``unique_together`` as criterions for persistence. The module will check first whether any record with the given combination of values in unique fields already exists and update that record.
 
 .. note:: Do not use the models internal pk or id field as identifier for your data! Add an extra field containing the identifier from the upstream source, such as ``record`` or ``remote_id``.
 
 **Extra arguments**
 
-Another method to add (or overwrite) persistence criterions is to add a list of fields via key word argument.
+Another method to add (or overwrite) persistence criterions is to add a list of fields via key word argument. Obviously, this setting will not be able to to violate model constraints. In that case, an IntegrityError will be raised (or logged when used within the Loader class). 
 
 .. code-block:: python
 
@@ -160,7 +157,7 @@ You can subclass InstanceGenerator and create your own generator class with a sp
 
 ``etl_persistence`` **key in data dictionary**
 
-The last method is to put an extra key value pair in your data dictionary, e.g. during the dictionary transformation.
+The last method is to put an extra key value pair in your data dictionary, e.g. during dictionary transformation.
 
 .. code-block:: python
 
@@ -185,18 +182,18 @@ directly accessible (see below). E.g.
 
 If the instance generator is called like this and the ``create_foreignkey`` attribute is ``True``, the foreign key entry for developer with paygroup III will be generated if not already existent.
 
-In addition the key value pair ``etl_create: True`` can be set on nested records to create (or prevent the creation if set ``False``) of nested records.
+In addition, the key value pair ``etl_create: True`` can be set on nested records to create (or prevent the creation if set ``False``) of nested records.
 
-If record creation is disabled and the persistence criterion cannot be met, the record will be rejected and the rejection logged in the logfile when using ``Loader``.
+If record creation is disabled and the persistence criterion cannot be met, the record will be rejected and the rejection logged in the logfile when using the ``Loader`` class.
 
-**Defining persistence by a Django ModelField attributes requiring a concise data model is the preferred method.**
+**Defining persistence through concise Django model design is the preferred method.** However there might be cases where ETL constraints might be stricter than model constraints. 
 
 Once the attribute **persistence** is set on the ``Generator`` class the model field attributes will be ignored as a source for persistence rules. Nevertheless, conflicts with your Django models will throw ``IntegrityError`` or other database errors. 
 
 Error handling
 --------------
 
-If the ``Generator`` class is called within the ``Mapper`` class, errors will be caught and written to the defined logfile or to stdout. The loading process will continue. In contrast, if you use the ``Generator`` class in a different context you need to catch errors in your code 
+If the ``Generator`` class is called within the ``Loader`` class, Generator errors will be caught and logged to a logfile, by default in the same folder as the source. The loading process will continue. In contrast, if you use the ``Generator`` class in a different context you need to handle errors in your code 
 
 Readers
 -------
@@ -207,17 +204,17 @@ The package currently contains a reader for OGR readable files.
 
 .. code-block:: python
 
-    from etl_sync.generators import InstanceGenerator
+    from etl_sync.loaders import Loader
     from etl_sync.readers import OGRReader
 
-    class MyMapper(Mapper):
+    class MyLoader(Loader):
         reader_class=OGRReader
         
 
 Transformations
 ---------------
 
-Transformations remap the dictionary from the CSV reader or another reader class to the Django model. We attempt to map the
+Transformations remap the dictionary returned from the reader class to Django model attributes. We attempt to map the
 dictionary key to the model field with the matching name. The ``Transformer`` classes allows for remapping and validation of incoming records.
 
 Instantiate ``InstanceGenerator`` with a customized ``Transformer`` class:
@@ -237,7 +234,7 @@ Instantiate ``InstanceGenerator`` with a customized ``Transformer`` class:
         model_class = SomeModel
         transformer_class = MyTransformer
 
-    loader = MyLoader(filename=myfile.txt)
+    loader = MyLoader(myfile.txt)
     loader.load()
 
 
@@ -263,7 +260,7 @@ In addition to these built-in transformations, there are two additional methods 
             if last_name == 'Bunny':
                 raise ValidationError('I do not want to have this record')
 
-Both methods will be applied after the aforementioned built-in methods encouraging a declarative style.
+Both methods will be applied *after* the aforementioned built-in methods encouraging a declarative style.
 
 
 **Django form support**
