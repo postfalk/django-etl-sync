@@ -246,7 +246,8 @@ class Loader(object):
             self.reader_reject(counter, logger, e)
             return
 
-        transformer = self.transformer_class(dic)
+        defaults = self.options.get('defaults') or {}
+        transformer = self.transformer_class(dic, defaults=defaults)
         try:
             if transformer.is_valid():
                 dic = transformer.cleaned_data
