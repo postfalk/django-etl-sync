@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from django.forms.models import model_to_dict
 from django.utils import version
 from django.db import IntegrityError
+from django.db.models import Model
 from django.contrib.gis.db.models import CharField
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -191,11 +193,14 @@ class TestRelations(TestCase):
                 {'record': '21', 'ilosc': 'dwadziescia jeden',
                     'persistence': 'record'},
                 ],
-                'numero': 'tre'}]
+                'numero': 'tre'},
+        ]
         for dic in dics:
             generator = InstanceGenerator(models.TestModel)
             generator.get_instance(dic)
         res = models.Polish.objects.all()
+        for item in res:
+            print model_to_dict(item)
         self.assertEqual(res.count(), 3)
 
     def test_onetoone(self):
@@ -296,24 +301,6 @@ class TestRejection(TestCase):
         generator = InstanceGenerator(models.TestModel)
         with self.assertRaises(ValueError):
             generator.get_instance(dic)
-
-
-class TestMiscModelFunctionality(TestCase):
-
-    # This functionality has been removed for performance reason
-    # but can be easily re-instated through sub-classing.
-    def __test_signals(self):
-        """Test whether auto_now=True fields get updated as well."""
-        models.TestModelWoFk.objects.all().delete()
-        dic = {'record': '1110'}
-        InstanceGenerator(
-            models.TestModelWoFk, persistence='record').get_instance(dic)
-        date_1 = models.TestModelWoFk.objects.filter(record='1110')[0].date
-        dic = {'record': '1110', 'name': 'test'}
-        InstanceGenerator(
-            models.TestModelWoFk, persistence='record').get_instance(dic)
-        qs = models.TestModelWoFk.objects.filter(record='1110')
-        self.assertLess(date_1, qs[0].date)
 
 
 class TestPreparations(TestCase):
@@ -426,3 +413,43 @@ class TestHashing(TestCase):
         self.assertEqual(generator.res, 'updated')
         generator.get_instance({'record': 2, 'numero': '22'})
         self.assertEqual(generator.res, 'created')
+
+
+class TestSelectRelatedByRelated(TestCase):
+    """
+    This test was created because of a bug that a record
+    could be created but not retrieved on the basis of
+    two dictionaries for foreign key fields. The same worked
+    perfectly well in 0.2.2.
+    """
+
+    def test_selectrelated(self):
+        generator = InstanceGenerator(models.RelatedRelated)
+        dic = {
+            'value': 'test',
+            'key': {
+                'numero': {
+                    'name': 'hello'},
+                'another': {
+                    'record': 'r10',
+                    'last_name': 'Mueller'
+                },
+            }
+        }
+        generator.get_instance(dic)
+        self.assertEqual(models.Numero.objects.count(), 1)
+        self.assertEqual(models.AnotherModel.objects.count(), 1)
+        self.assertEqual(models.TwoRelatedAsUnique.objects.count(), 1)
+        qs = models.RelatedRelated.objects.all()
+        self.assertEqual(qs.count(), 1)
+        item = qs[0]
+        self.assertEqual(item.key.numero.name, 'hello')
+        self.assertEqual(item.key.another.last_name, 'Mueller')
+        self.assertEqual(item.value, 'test')
+        generator.get_instance(dic)
+        qs = models.RelatedRelated.objects.all()
+        self.assertEqual(qs.count(), 2)
+        item = qs[1]
+        self.assertEqual(item.key.numero.name, 'hello')
+        self.assertEqual(item.key.another.last_name, 'Mueller')
+        self.assertEqual(item.value, 'test')

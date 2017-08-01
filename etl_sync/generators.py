@@ -193,7 +193,8 @@ class BaseGenerator(object):
         Creates, updates, and returns an instance from a dictionary.
         """
         if isinstance(obj, dict):
-            instance = self.instance_from_dic(obj)
+            dic = obj.copy()
+            instance = self.instance_from_dic(dic)
             self.assign_related(instance)
             return instance
         if isinstance(obj, self.model_class):

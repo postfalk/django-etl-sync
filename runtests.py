@@ -9,6 +9,12 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
 
 from django.test.utils import get_runner
 
+tests = 'tests'
+try:
+    tests = sys.argv[1]
+except IndexError:
+    pass
+
 if __name__ == "__main__":
     os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
     try:
@@ -17,5 +23,5 @@ if __name__ == "__main__":
         pass
     TestRunner = get_runner(settings)
     test_runner = TestRunner()
-    failures = test_runner.run_tests(['tests'])
+    failures = test_runner.run_tests([tests])
     sys.exit(bool(failures))
