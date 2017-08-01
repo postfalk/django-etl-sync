@@ -203,7 +203,8 @@ class Loader(object):
         self.options = options
 
     def feedback_hook(self, counter):
-        """Create actions that will be triggered after the number of records
+        """
+        Create actions that will be triggered after the number of records
         defined in self.feedbacksize. This can be used to store a file position
         to a database to continue a load later.
 

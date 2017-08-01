@@ -133,3 +133,16 @@ class ParentModel(models.Model):
 class TwoUnique(models.Model):
     record = models.CharField(max_length=2, unique=True)
     anotherfield = models.CharField(max_length=2, unique=True)
+
+
+class TwoRelatedAsUnique(models.Model):
+    numero = models.ForeignKey(Numero)
+    another = models.ForeignKey(AnotherModel)
+    value = models.CharField(max_length=5)
+
+    class Meta:
+        unique_together = ('numero', 'another')
+
+class RelatedRelated(models.Model):
+    key = models.ForeignKey(TwoRelatedAsUnique)
+    value = models.CharField(max_length=5)
