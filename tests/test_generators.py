@@ -427,11 +427,14 @@ class TestSelectRelatedByRelated(TestCase):
             'value': 'test',
             'key': {
                 'numero': {
-                    'name': 'hello'},
+                    'name': 'hello',
+                },
                 'another': {
                     'record': 'r10',
-                    'last_name': 'Mueller'
+                    'last_name': 'Mueller',
                 },
+                'etl_create': True,
+                'etl_update': False
             }
         }
         generator.get_instance(dic)

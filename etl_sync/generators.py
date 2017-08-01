@@ -152,6 +152,7 @@ class BaseGenerator(object):
                 return instance
             else:
                 self.res = 'exists'
+                return qs[0]
         else:
             if create:
                 instance = self.create_in_db(dic)
