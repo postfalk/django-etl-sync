@@ -20,9 +20,11 @@ def get_unique_fields(model_class):
 
 
 def get_internal_type(field):
-    """Wrapper for Django 1.8.16 compatibility. Handles fields
+    """
+    Wrapper for Django 1.8.16 compatibility. Handles fields
     without a .get_internal_type attribute, which don't need to
-    return an internal field."""
+    return an internal field.
+    """
     try:
         return field.get_internal_type()
     except AttributeError:
@@ -30,8 +32,10 @@ def get_internal_type(field):
 
 
 def get_fields(model_class):
-    """Wrapper for Django 1.7 compatibility. Compatibility is
-    limited for performance reasons."""
+    """
+    Wrapper for Django 1.7 compatibility. Compatibility is
+    limited for performance reasons.
+    """
     try:
         return model_class._meta.get_fields()
     except AttributeError:
@@ -66,8 +70,10 @@ def get_unambiguous_fields(model_class):
 
 
 def get_unique_string_fields(model_class):
-    """Unique string fields are used to auto normalize ForeignKey
-    relations."""
+    """
+    Unique string fields are used to auto normalize ForeignKey
+    relations.
+    """
     return [
         field for field in get_fields(model_class)
         if get_internal_type(field) == 'CharField' and
@@ -115,7 +121,8 @@ class BaseGenerator(object):
         return self.model_class.objects.create(**dic)
 
     def update_in_db(self, dic, qs):
-        """Updates record in the database. Be aware of following changes
+        """
+        Updates record in the database. Be aware of following changes
         which were made for performance reasons.
         1. Check for qs length was removed. If persistence queryset has more
         than one model all will be updated. Secure in model setup or override.
@@ -182,7 +189,9 @@ class BaseGenerator(object):
                         ]})
 
     def get_instance(self, obj):
-        """Creates, updates, and returns an instance from a dictionary."""
+        """
+        Creates, updates, and returns an instance from a dictionary.
+        """
         if isinstance(obj, dict):
             instance = self.instance_from_dic(obj)
             self.assign_related(instance)
@@ -200,7 +209,8 @@ class BaseGenerator(object):
         return dic
 
     def finalize(self):
-        """Override this method to finalize your data generation job,
+        """
+        Override this method to finalize your data generation job,
         e.g. close files, write buffered data to disk or database, etc.
         It will be called once the Loader finishes its loop.
 
@@ -243,8 +253,10 @@ class InstanceGenerator(BaseGenerator):
             field.rel.to, options=options).get_instance(value)
 
     def prepare_m2m(self, field, lst):
-        # defer assignment of related instances until instance
-        # creation is finished
+        """
+        Defers assignment of related instances until instance creation is
+        finished.
+        """
         self.related_instances[field.name] = []
         if not isinstance(lst, list):
             lst = [lst]
@@ -313,8 +325,10 @@ class InstanceGenerator(BaseGenerator):
 
 
 class HashMixin(object):
-    """Mix-in adding hashing to Generators. Replaces persistence
-    criterion."""
+    """
+    Mix-in adding hashing to Generators. Replaces persistence
+    criterion.
+    """
     hashfield = 'md5'
     do_not_hash_fields = ['id', 'last_modified']
 
