@@ -259,7 +259,7 @@ class Loader(object):
             if transformer.is_valid():
                 dic = transformer.cleaned_data
             else:
-                raise ValidationError
+                raise ValidationError('Transformer did not return valid data')
         except (ValidationError, ValueError, IndexError,
                 KeyError) as e:
             self.transformation_reject(counter, logger, e)
