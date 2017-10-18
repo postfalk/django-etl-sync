@@ -61,7 +61,7 @@ class TestModel(models.Model):
     numero = models.ForeignKey(Numero)
     elnumero = models.ForeignKey(
         ElNumero, to_field='rec', null=True, blank=True)
-    related = models.ManyToManyField(Polish, null=True, blank=True)
+    related = models.ManyToManyField(Polish, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 
 
@@ -76,7 +76,7 @@ class TestOnetoOneModel(models.Model):
     numero = models.ForeignKey(Numero)
     elnumero = models.ForeignKey(
         ElNumero, to_field='rec', null=True, blank=True)
-    related = models.ManyToManyField(Polish, null=True, blank=True)
+    related = models.ManyToManyField(Polish, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 
 
@@ -84,7 +84,7 @@ class HashTestModel(models.Model):
     record = models.CharField(max_length=10, unique=True)
     numero = models.ForeignKey(Numero, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
-    related = models.ManyToManyField(Polish, null=True)
+    related = models.ManyToManyField(Polish)
     md5 = models.CharField(max_length=32, null=True)
 
 
