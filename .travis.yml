@@ -20,15 +20,10 @@ before_install:
 
 install:
   - pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite
-  - CFLAGS=-I/usr/include/gdal pip install GDAL==2.2.2
+  - CFLAGS=-I/usr/include/gdal pip install GDAL==2.1
   - pip install -r requirements.txt
   - pip install coveralls
 
-virtualenv:
-   system_site_packages: true
+script: coverage run --source etl_sync runtests.py && coverage report
 
-script:
-    coverage run --source etl_sync runtests.py && coverage report
-
-after_success:
-    coveralls
+after_success: coveralls
