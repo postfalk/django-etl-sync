@@ -4,7 +4,7 @@
 # see gdal-config --version
 
 django==1.8.5
-GDAL==1.10
+GDAL==2.2.2
 six==1.10
 future==0.15.2
 backports.csv==1.0.1
