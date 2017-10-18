@@ -19,6 +19,8 @@ before_install:
   - sudo apt-get -y install libgdal-dev libstdc++6-4.6-dev
 
 install:
+  - export CPLUS_INCLUDE_PATH=/usr/include/gdal
+  - export C_INCLUDE_PATH=/usr/include/gdal
   - pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite
   - CFLAGS=-I/usr/include/gdal pip install GDAL==2.1
   - pip install -r requirements.txt
