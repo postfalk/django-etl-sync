@@ -3,24 +3,25 @@ language: python
 python:
  - "2.7"
  - "3.4"
+ - "3.6"
 before_install:
  - "sudo apt-get update -qq -y"
- - "sudo apt-get install -qq -y libgdal-dev libgeos-dev libproj-dev spatialite-bin python-dev python3-dev"
+ - "sudo apt-get install -qq -y libgdal-dev libgdal2-dev libgeos-dev libproj-dev spatialite-bin python-dev python3-dev"
 env:
-    # - DJANGO_VERSION=1.6.5
  - DJANGO_VERSION=1.7.0
  - DJANGO_VERSION=1.8.16
  - DJANGO_VERSION=1.9.11
  - DJANGO_VERSION=1.10.3
+ - DJANGO_VERSION=1.11.6
 virtualenv:
- system_site_packages: true
+   system_site_packages: true
 install: 
  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite; fi
  - pip install coveralls
  - CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
  - pip install Django==$DJANGO_VERSION
  - python setup.py -q install
- - CFLAGS=-I/usr/include/gdal pip install GDAL==1.10
+ - CFLAGS=-I/usr/include/gdal pip install GDAL==2.2.2
 script:
     coverage run --source etl_sync runtests.py && coverage report
 after_success:
