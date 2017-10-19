@@ -200,6 +200,7 @@ class Loader(object):
     reader_kwargs = {'delimiter': u'\t', 'quoting': csv.QUOTE_NONE}
     generator_class = InstanceGenerator
     model_class = None
+    extractor_class = Extractor
     persistence = []
 
     def __init__(self, source, model_class=None, options={}):
@@ -210,8 +211,9 @@ class Loader(object):
         self.feedbacksize = options.get('feedbacksize', 5000)
         self.logfile = get_logfile(
             filename=self.source, logfilename=self.logfilename)
-        self.extractor = Extractor(
-            self.source, self.reader_class, self.reader_kwargs, options=options)
+        self.extractor = self.extractor_class(
+            self.source, self.reader_class, self.reader_kwargs,
+            options=options)
         self.slice_begin = options.get('slice_begin', 0)
         self.slice_end = options.get('slice_end')
         self.generator = self.generator_class(
