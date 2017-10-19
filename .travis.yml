@@ -21,8 +21,7 @@ before_install:
   - gdalinfo --version
 
 install:
-  - pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite
-  - CFLAGS=-I/usr/include/gdal pip install GDAL==2.1
+  - test $TRAVIS_PYTHON_VERSION = 2.7 && $pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite
   - CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
   - pip install coveralls
 
