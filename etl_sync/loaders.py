@@ -1,7 +1,6 @@
 from __future__ import print_function
 from backports import csv
 from builtins import str as text
-
 import io
 import os
 from datetime import datetime
@@ -104,9 +103,16 @@ class FeedbackCounter(object):
 
 class Extractor(object):
     """
-    Context manager, creates the reader and handles files. This seems
-    to be necessary since arguments to CSVDictReader require to be set
-    on initialization.
+    Context manager, creates the reader and handles files or other
+    sources. This is necessary because parameters to CSVDictReader
+    needs to be set on initialization.
+
+    Args:
+        source (file, file-like object, or str)
+        reader_class (CSVReader or duck-typed Reader class)
+        reader_kwargs (dic): Whatever needs to be passed on to the reaader
+        options (dic): custom options that need to be passed through to
+            reader
 
     Return reader instance.
     """
@@ -124,8 +130,12 @@ class Extractor(object):
     def __enter__(self):
         """
         Checks whether source is file object as required by csv.Reader.
-        Implement file handling in your own reader class. Allows for
-        non-text data sources or directories (see e.g. OGRReader)
+        Implement file handling in reader class. This approach allows for
+        non-text data sources (see e.g. OGRReader). If self.source is not
+        a file or file-like object and cannot be converted in one by opening,
+        we pass self.source on. In that case the reader_class needs to make
+        sense of it. This is necessary, i.e. if the source is a .gdb
+        represented as a folder or an url representing an API end point.
         """
         if hasattr(self.source, 'read'):
             fil = self.source
@@ -133,7 +143,7 @@ class Extractor(object):
             try:
                 fil = io.open(self.source)
             except IOError:
-                return None
+                return self.source
         return self.reader_class(fil, **self.reader_kwargs)
 
     def __exit__(self, type, value, traceback):
@@ -244,8 +254,10 @@ class Loader(object):
         self.feedback(counter)
 
     def process(self, extractor, counter, logger):
-        """This is broken out from below and should be better
-        organized."""
+        """
+        This is broken out from below and should be better
+        organized.
+        """
 
         try:
             dic = extractor.next()
