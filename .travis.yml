@@ -22,8 +22,8 @@ install:
   - export CPLUS_INCLUDE_PATH=/usr/include/gdal
   - export C_INCLUDE_PATH=/usr/include/gdal
   - pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite
-  - CFLAGS=-I/usr/include/gdal pip install GDAL==2.1
-  - pip install -r requirements.txt
+  - CFLAGS=-I/usr/include/gdal pip install GDAL==2.2
+  - CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
   - pip install coveralls
 
 script: coverage run --source etl_sync runtests.py && coverage report
