@@ -143,7 +143,7 @@ class Extractor(object):
             try:
                 fil = io.open(self.source)
             except IOError:
-                return self.source
+                fil = self.source
         return self.reader_class(fil, **self.reader_kwargs)
 
     def __exit__(self, type, value, traceback):
