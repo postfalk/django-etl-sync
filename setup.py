@@ -1,7 +1,10 @@
+from __future__ import unicode_literals
 import os
 from setuptools import setup
 
+
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
+
 
 setup(
     name='django-etl-sync',
