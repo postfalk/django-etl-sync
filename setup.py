@@ -8,13 +8,13 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-etl-sync',
-    version='0.3.1',
+    version='0.3.2',
     packages=['etl_sync'],
     include_package_data=True,
     license='BSD License',
     description='Django ETL, derives rules from models, creates relations.',
     url='https://github.com/postfalk/django-etl-sync.git',
-    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.3.1',
+    download_url='https://github.com/postfalk/django-etl-sync/tarball/0.3.2',
     author='Falk Schuetzenmeister',
     author_email='schuetzenmeister@berkeley.edu',
     install_requires=['future', 'six', 'backports.csv'],
@@ -30,9 +30,8 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content']
 )
