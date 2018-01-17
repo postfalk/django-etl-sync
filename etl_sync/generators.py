@@ -252,8 +252,9 @@ class InstanceGenerator(BaseGenerator):
 
     def prepare_fk(self, field, value):
         options = {'related_field': field.related_fields[0][1].name}
+        related = getattr(field, 'related_model')
         return InstanceGenerator(
-            field.rel.to, options=options).get_instance(value)
+            related, options=options).get_instance(value)
 
     def prepare_m2m(self, field, lst):
         """
@@ -264,7 +265,8 @@ class InstanceGenerator(BaseGenerator):
         if not isinstance(lst, list):
             lst = [lst]
         for item in lst:
-            generator = InstanceGenerator(field.rel.to)
+            related = getattr(field, 'related_model')
+            generator = InstanceGenerator(related)
             instance = generator.get_instance(item)
             self.related_instances[field.name].append(instance)
 

@@ -19,7 +19,7 @@ class Nombre(models.Model):
 
 
 class SimpleFkModel(models.Model):
-    fk = models.ForeignKey(Nombre)
+    fk = models.ForeignKey(Nombre, on_delete=models.CASCADE)
     name = models.CharField(max_length=10)
 
 
@@ -57,10 +57,11 @@ class TestModel(models.Model):
     record = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=10, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
-    nombre = models.ForeignKey(Nombre, null=True)
-    numero = models.ForeignKey(Numero)
+    nombre = models.ForeignKey(Nombre, null=True, on_delete=models.CASCADE)
+    numero = models.ForeignKey(Numero, on_delete=models.CASCADE)
     elnumero = models.ForeignKey(
-        ElNumero, to_field='rec', null=True, blank=True)
+        ElNumero, to_field='rec', null=True, blank=True,
+        on_delete=models.CASCADE)
     related = models.ManyToManyField(Polish, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 
@@ -72,17 +73,20 @@ class TestOnetoOneModel(models.Model):
     record = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=10, null=True, blank=True)
     zahl = models.CharField(max_length=10, null=True, blank=True)
-    nombre = models.OneToOneField(Nombre, null=True, blank=True)
-    numero = models.ForeignKey(Numero)
+    nombre = models.OneToOneField(
+        Nombre, null=True, blank=True, on_delete=models.CASCADE)
+    numero = models.ForeignKey(Numero, on_delete=models.CASCADE)
     elnumero = models.ForeignKey(
-        ElNumero, to_field='rec', null=True, blank=True)
+        ElNumero, to_field='rec', null=True, blank=True,
+        on_delete=models.CASCADE)
     related = models.ManyToManyField(Polish, blank=True)
     date = models.DateTimeField(null=True, blank=True)
 
 
 class HashTestModel(models.Model):
     record = models.CharField(max_length=10, unique=True)
-    numero = models.ForeignKey(Numero, null=True, blank=True)
+    numero = models.ForeignKey(
+        Numero, null=True, blank=True, on_delete=models.CASCADE)
     zahl = models.CharField(max_length=10, null=True, blank=True)
     related = models.ManyToManyField(Polish)
     md5 = models.CharField(max_length=32, null=True)
@@ -101,8 +105,8 @@ class SomeModel(models.Model):
 
 
 class IntermediateModel(models.Model):
-    somemodel = models.ForeignKey(SomeModel)
-    anothermodel = models.ForeignKey(AnotherModel)
+    somemodel = models.ForeignKey(SomeModel, on_delete=models.CASCADE)
+    anothermodel = models.ForeignKey(AnotherModel, on_delete=models.CASCADE)
     attribute = models.CharField(max_length=10, blank=True)
 
 
@@ -110,7 +114,7 @@ class GeometryModel(models.Model):
     name = models.CharField(max_length=10, null=True, blank=True)
     geom2d = models.GeometryField(null=True, blank=True)
     geom3d = models.GeometryField(null=True, blank=True, dim=3)
-    objects = models.GeoManager()
+    # objects = models.GeoManager()
 
 
 class DateTimeModel(models.Model):
@@ -127,7 +131,8 @@ class WellDefinedModel(models.Model):
 
 
 class ParentModel(models.Model):
-    well_defined = models.ForeignKey(WellDefinedModel)
+    well_defined = models.ForeignKey(
+        WellDefinedModel, on_delete=models.CASCADE)
 
 
 class TwoUnique(models.Model):
@@ -136,13 +141,13 @@ class TwoUnique(models.Model):
 
 
 class TwoRelatedAsUnique(models.Model):
-    numero = models.ForeignKey(Numero)
-    another = models.ForeignKey(AnotherModel)
+    numero = models.ForeignKey(Numero, on_delete=models.CASCADE)
+    another = models.ForeignKey(AnotherModel, on_delete=models.CASCADE)
     value = models.CharField(max_length=5)
 
     class Meta:
         unique_together = ('numero', 'another')
 
 class RelatedRelated(models.Model):
-    key = models.ForeignKey(TwoRelatedAsUnique)
+    key = models.ForeignKey(TwoRelatedAsUnique, on_delete=models.CASCADE)
     value = models.CharField(max_length=5)

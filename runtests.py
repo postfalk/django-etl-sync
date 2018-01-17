@@ -13,6 +13,8 @@ from django.test.utils import get_runner
 
 
 tests = 'tests'
+
+
 try:
     tests = sys.argv[1]
 except IndexError:
@@ -23,9 +25,10 @@ if __name__ == "__main__":
     os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
     try:
         django.setup()
-    except AttributeError:
-        pass
-    TestRunner = get_runner(settings)
-    test_runner = TestRunner()
-    failures = test_runner.run_tests([tests])
-    sys.exit(bool(failures))
+    except AttributeError as e:
+        print("Django setup did not work\n\n", e)
+    else:
+        TestRunner = get_runner(settings)
+        test_runner = TestRunner()
+        failures = test_runner.run_tests([tests])
+        sys.exit(bool(failures))

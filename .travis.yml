@@ -10,6 +10,12 @@ env:
  - DJANGO_VERSION=1.9.11
  - DJANGO_VERSION=1.10.3
  - DJANGO_VERSION=1.11.6
+ - DJANGO_VERSION=2.0.1
+
+matrix:
+  exclude:
+    - python: '2.7'
+      env: DJANGO_VERSION=2.0.1
 
 before_install:
   - lsb_release -a
