@@ -23,6 +23,7 @@ before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get -qq update
   - sudo apt-get -y install python-dev python3-dev libgdal-dev gdal-bin libstdc++6-4.6-dev
+  - sudo apt-get install sqlite3 libsqlite3-dev
   - gdalinfo --version
 
 install:
