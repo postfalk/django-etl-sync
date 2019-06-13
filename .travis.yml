@@ -30,6 +30,7 @@ install:
   - pip install --global-option=build_ext --global-option='-USQLITE_OMIT_LOAD_EXTENSION' pysqlite || true
   - CFLAGS=-I/usr/include/gdal pip install -r requirements.txt
   - pip install -q Django==$DJANGO_VERSION
+  - export SPATIALITE_LIBRARY_PATH='mod_spatialite'
   - pip install coveralls
 
 script: coverage run --source etl_sync runtests.py && coverage report
