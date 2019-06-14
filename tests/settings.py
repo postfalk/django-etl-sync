@@ -1,5 +1,9 @@
 import os
 
+# required by Ubuntu systems and travis
+# see https://stackoverflow.com/questions/51425842/django-unable-to-load-the-spatialite-library-extension-mod-spatialite-on-ubuntu
+SPATIALITE_LIBRARY_PATH = 'mod_spatialite.so'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.spatialite',
