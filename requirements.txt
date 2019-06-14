@@ -3,7 +3,7 @@
 # Use same GDAL version as installed on your system
 # see gdal-config --version
 
-django==1.11
+django==1.11.21
 GDAL==2.1
 six==1.10
 future==0.15.2
